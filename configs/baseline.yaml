@@ -1,0 +1,14 @@
+# Run 1: baseline. Fixed 500-token chunks, 50 overlap, vector search only, MiniLM.
+# These already match default.yaml; they are written out so the run is self-documenting.
+run_name: baseline
+
+chunking:
+  strategy: fixed
+  chunk_size: 500
+  chunk_overlap: 50
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+
+retrieval:
+  mode: vector
