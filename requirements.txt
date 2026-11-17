@@ -1,0 +1,16 @@
+# PDF text extraction (imported as "fitz" / "pymupdf")
+pymupdf>=1.24
+# Embedding models and the cross-encoder reranker (pulls in torch)
+sentence-transformers>=3.0
+# Local vector database
+chromadb>=0.5
+# BM25 keyword search
+rank_bm25>=0.2.2
+# Results tables and charts
+pandas>=2.2
+matplotlib>=3.8
+# Experiment configs
+PyYAML>=6.0
+# Tests
+pytest>=8.0
+# Streamlit is added in Phase 9.
