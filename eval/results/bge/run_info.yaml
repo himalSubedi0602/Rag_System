@@ -1,0 +1,8 @@
+chunks: 2468
+embedded_units: 2468
+quotes_reachable: 84/84
+vector_index_mb: 3.7
+chunks_truncated_pct: 0.0
+tokens_unseen_pct: 0.0
+mean_latency_ms: 13.7
+questions: 84

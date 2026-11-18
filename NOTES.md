@@ -256,3 +256,77 @@ With this many comparisons some will look significant by chance; results near th
   them. Motivation: the fact_found diagnosis shows long pages crowding out the fact chunk as the main failure.
 - **Note:** the "max 2 chunks per version_group" cap targets near-duplicate versions and multi_doc
   questions, not the long-page problem (that's runs 7b and 12).
+
+## Phase 7a: chunking and embedding experiments (2026-11-18)
+
+**Built**
+- Configs: `chunk250`, `chunk1000` (run 2), `small2big` (run 2b), `heading` (3), `prefix` (4), `bge` (5).
+- Small-to-big (`retrieval.small_to_big`): each 500-token chunk is split into 250-token pieces (25 overlap)
+  in a separate Chroma collection; search ranks pieces and returns each parent chunk once, by its best piece.
+- `src/report.py`: one table of all runs vs the reference, every column labelled with its question group;
+  paired differences per group; verdicts on the pre-registered main metric.
+- Chunk files carry a `.meta.json` (documents hash + content-affecting chunking settings + chunker
+  version) and are rebuilt when stale (found because Phase 3 `chunk250`/`heading` files lacked `version_status`).
+- Tie tolerance 0.005 for stale/fact_stale (`*_exact` columns keep the identical-score rule).
+  **Introduced after seeing bge's 7a result** (gaps of 0.0001-0.003 decided "old wins").
+- Cost columns: embedded vectors, HNSW vector-index size on disk, mean search latency. Tests: 100.
+
+**Corrections made before merging**
+- The first report's Δ column used ALL answerable questions (incl. history and real_pair) while the level
+  column used `overall`. The pre-registration (above) says the main metric is chunk_recall@5 on `overall`,
+  defined in the v0.1-baseline code as "all answerable questions except the sanity checks (history,
+  real_pair)" (n = 66). Re-computed on that group, **small2big's ✅ disappeared**.
+- fact_stale is now paired only on outdated questions where BOTH runs retrieved a fact chunk.
+- All 7 runs (baseline included) were re-run after the stale-chunk fix and the tie-tolerance change; the
+  baseline's retrieval metrics are identical (max change 0.000000). Version metrics moved with the tie rule:
+  stale 0.545 -> 0.477, fact_stale 0.500 -> 0.458, fact_found unchanged 0.48.
+- eval/results/baseline/ was re-run with the 0.005 tie rule. The original Phase 6 baseline numbers are preserved in tag v0.1-baseline and in eval/results/baseline_v1/ (baseline_v1 is the first, pre-correction Phase 6 run on the 80-question set; the corrected final Phase 6 baseline is the one in the tag).
+
+**Results (tune; Δ = paired difference from baseline [95% CI], better/worse; – = no detectable difference)**
+
+| run | MAIN Δ chunk R@5 (overall, n=66) | Δ chunk R@5 (non_outdated, n=41) | Δ fact_found (n=25) | vectors | index MB | search ms |
+|---|---|---|---|---|---|---|
+| baseline (0.455) | | | | 2,468 | 3.7 | 12 |
+| chunk250 | -0.038 [-0.14, 0.07] – 6/8 | +0.012 – | +0.04 – | 4,774 | 7.4 | 11 |
+| chunk1000 | +0.030 [-0.07, 0.13] – 7/5 | +0.073 – | +0.08 – | 1,330 | 1.8 | 11 |
+| small2big | +0.068 [-0.008, 0.152] – 7/2 | **+0.110 [0.024, 0.220] ✅ 5/0** | **+0.24 [0.08, 0.40] ✅** | 7,189 | 16.5 | 20 |
+| heading | +0.053 [-0.008, 0.121] – 5/1 | +0.037 – | **+0.28 [0.08, 0.48] ✅** | 4,704 | 7.4 | 11 |
+| prefix | +0.015 [-0.07, 0.11] – 6/4 | +0.024 – | +0.04 – | 2,468 | 3.7 | 11 |
+| bge | +0.098 [-0.015, 0.212] – 13/5 | +0.110 [-0.01, 0.24] – | +0.20 [0.00, 0.44] – | 2,468 | 3.7 | 14 |
+
+bge vs baseline fact_stale (paired, both found, n=10): exact ties +0.400 [0.10, 0.65] ❌; tolerance 0.005
++0.150 [0.00, 0.40] – . The "bge is worse" effect came from score gaps of 0.0001-0.003.
+
+**Interpretation**
+- **No run is a pre-registered improvement on the main metric.** Power: with n = 66 and the observed
+  spread of per-question differences (SD ~0.39), the smallest reliably detectable improvement is ~0.13;
+  all 7a effects (-0.04 to +0.10) are below that. "No detectable difference" here means "too small for
+  this test set to confirm", not "no effect".
+- small2big and heading improve secondary measures (non_outdated recall; fact_found) significantly.
+- Removing truncation alone (chunk250) doesn't help: twice as many competing chunks, less context each.
+- Similarity search cannot tell old from new versions: ties under MiniLM (fact invisible), tiny arbitrary
+  gaps under bge.
+
+**Decision: small2big is the Phase 7b base.** Chosen as base because it removes MiniLM truncation, which is
+needed for fair tests of the reranker and version runs. **Not a pre-registered improvement on the main
+metric** (+0.068 [-0.008, 0.152]). heading and bge are promising but not confirmed. The pre-registered rule
+is unchanged. Every 7b run is compared with both the base (small2big) and the original baseline.
+
+### Amendment 2 (2026-11-18, before any Phase 7b run)
+- **Expand the tune set by ~60 questions** (lookup, paraphrase, multi_doc), same writing rules, validator
+  and approval process; **the test split is untouched**. Before 7b starts, re-run the baseline and all 7a
+  runs on the expanded set and report them again.
+- **Power note:** with SD of per-question differences ~0.39 (observed in 7a), the smallest improvement
+  detectable at 80% power with a 95% interval is about 2.8 x 0.39 / sqrt(n): ~0.13 at n = 66, ~0.11 at
+  n = 100, ~0.10 at n = 126, ~0.08 at n = 200. Effects smaller than that will usually read as "–".
+- **Base = small2big** (see decision above). Each 7b run is compared with the base AND the original baseline.
+- **Step 1: retest on the base, one change each:** bge, heading-as-parent (sections as parent chunks with
+  250-token pieces inside them), prefix. Step 1 ends with **bge alone vs. small2big + bge**: if their
+  intervals overlap, the final configuration uses the simpler one (bge alone).
+- **Step 2: planned runs on the best base from step 1:** 6 hybrid BM25 (RRF), 6b max 2 chunks per
+  version_group, 7 reranker top 30, 7b reranker top 100, 12 two-stage search (top 3 documents, then chunks
+  within them), 8 exclude superseded, 9 date-aware rerank, 9b version swap.
+- **Every run reports:** chunk recall@30 and @100, cost columns (vectors, index MB, search ms), and paired
+  fact_stale (both found) plus stale at tie tolerances **0.001, 0.005 and 0.01**. The 0.005 tolerance
+  was chosen after 7a; the other two show how much conclusions depend on it.
+- Main metric, improvement rule, guardrail and test-split rule are unchanged.
