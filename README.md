@@ -85,6 +85,12 @@ per-question better/worse counts):
 python -m src.compare baseline <other_run>
 ```
 
+One table for several runs against the baseline:
+
+```bash
+python -m src.report --name phase7a baseline chunk250 chunk1000 small2big heading prefix bge
+```
+
 Each experiment is one YAML file in `configs/` that lists only what it changes from
 `configs/default.yaml`. To print the final merged config:
 

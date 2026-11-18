@@ -18,8 +18,15 @@ import pandas as pd
 from src.config import load_config, resolve_path
 from src.evaluate import BOOTSTRAP_SAMPLES, HEADLINE
 
-PAIRED_METRICS = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_found", "stale"]
-LOWER_IS_BETTER = {"stale", "fact_stale"}
+PAIRED_METRICS = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_stale_exact", "fact_found", "stale"]
+LOWER_IS_BETTER = {"stale", "fact_stale", "fact_stale_exact"}
+SANITY_TYPES = {"history", "real_pair"}
+# Which questions each group contains (must match evaluate.aggregate):
+GROUPS = {
+    "overall": lambda t: ~t.isin(SANITY_TYPES),
+    "non_outdated": lambda t: ~t.isin(SANITY_TYPES | {"outdated_version"}),
+    "outdated_version": lambda t: t == "outdated_version",
+}
 
 
 def load_run(results_dir: Path, run: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -54,10 +61,13 @@ def paired_bootstrap(diff: np.ndarray, seed: int = 0) -> tuple[float, float]:
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
-def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame) -> pd.DataFrame:
-    """Per metric, on questions present in both runs: how many got better / worse / stayed, and the
-    mean difference with its paired 95% interval. For stale, LOWER is better."""
+def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame, group: str = "overall") -> pd.DataFrame:
+    """Per metric, on the questions of `group` present in both runs: how many got better / worse /
+    stayed, and the mean difference with its paired 95% interval. For stale metrics LOWER is better.
+    Rows with a blank value in EITHER run are dropped, so fact_stale is compared only on questions
+    where both runs retrieved a fact chunk."""
     merged = pq_a.merge(pq_b, on="id", suffixes=("_a", "_b"))
+    merged = merged[GROUPS[group](merged["question_type_a"])]
     rows = []
     for metric in PAIRED_METRICS:
         if f"{metric}_a" not in merged or f"{metric}_b" not in merged:
@@ -92,10 +102,11 @@ def main() -> None:
     metrics_a, pq_a = load_run(results_dir, args.run_a)
     metrics_b, pq_b = load_run(results_dir, args.run_b)
     sbs = side_by_side(metrics_a, metrics_b, args.run_a, args.run_b)
-    pair = paired(pq_a, pq_b)
+    pair = paired(pq_a, pq_b, "overall")
 
     text = (f"# {args.run_a} vs {args.run_b}\n\n## Side by side (95% bootstrap intervals)\n\n{to_markdown(sbs)}\n\n"
-            f"## Paired, on the {len(pq_a.merge(pq_b, on='id'))} questions both runs share\n\n{to_markdown(pair)}\n")
+            f"## Paired, `overall` questions both runs share (fact metrics: outdated questions where both found a fact chunk)\n\n"
+            f"{to_markdown(pair)}\n")
     out = results_dir / f"compare_{args.run_a}_vs_{args.run_b}.md"
     out.write_text(text, encoding="utf-8")
     with pd.option_context("display.width", 250, "display.max_columns", 30, "display.max_colwidth", 30):

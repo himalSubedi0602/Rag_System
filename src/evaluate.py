@@ -13,8 +13,9 @@ Conventions (all positions are CHUNK ranks in the retrieved list, 1 = best):
   stale       outdated_version only: an outdated version's first chunk ranks above the current
               gold doc's first chunk (or appears while the current one doesn't); stale@5 = top 5 only
   fact_stale  stricter: the chunk stating the OLD fact ranks above the chunk stating the CURRENT
-              fact (what the LLM would see first). For both, an exact score TIE counts 0.5: identical
-              text gets identical vectors, so the order is arbitrary (index insertion order).
+              fact (what the LLM would see first). For both, a score gap below TIE_TOLERANCE (0.005)
+              counts as a tie (0.5): such gaps come from wording and chunk-boundary noise. *_exact
+              columns use the old rule (only identical scores tie).
               If NEITHER version was retrieved the question can't show staleness: stale = blank (not 0),
               and fact_found (share of questions where a fact chunk was retrieved) reports that miss
 Groups: "overall" = all answerable questions except the sanity checks (history, real_pair); "non_outdated"
@@ -39,9 +40,11 @@ SEPARATE_TYPES = {"history", "real_pair"}   # sanity checks: own rows, not part 
 # Headline metrics get 95% CIs. The version metric is fact_stale (on questions where a fact chunk was
 # found), always reported with fact_found; doc-level stale is secondary.
 HEADLINE = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_found", "stale"]
-STALE_COLS = ["stale", "stale@5", "fact_stale", "fact_stale@5", "fact_found"]
+STALE_COLS = ["stale", "stale@5", "fact_stale", "fact_stale@5", "fact_found", "stale_exact", "fact_stale_exact"]
 DIAGNOSTIC_COLS = ["chunk_recall@30", "chunk_recall@100"]
-TIE_TOLERANCE = 1e-6
+TIE_TOLERANCE = 0.005        # score gaps below this are treated as ties (0.5): differences this small
+                             # come from wording/boundary noise, not from which version is more relevant
+EXACT_TIE = 1e-6             # the old rule (only identical scores tie), kept as *_exact columns
 LOOSE_MIN_WORDS = 8       # quotes this long use loose matching
 LOOSE_SHARE = 0.8         # share of the quote's words that must appear in the chunk
 BOOTSTRAP_SAMPLES = 2000
@@ -96,7 +99,7 @@ def reciprocal_rank(rank: int | None) -> float:
 
 
 def stale_score(current_flags: list[bool], old_flags: list[bool], scores: list[float] | None,
-                within: int | None = None) -> float:
+                within: int | None = None, tolerance: float = TIE_TOLERANCE) -> float:
     """1.0 if the first 'old' position beats the first 'current' one, 0.0 if not, 0.5 for an exact
     score tie, NaN if neither appears. Positions beyond `within` are ignored. No scores -> rank decides."""
     if within:
@@ -108,7 +111,7 @@ def stale_score(current_flags: list[bool], old_flags: list[bool], scores: list[f
         return 0.0
     if cur is None:
         return 1.0
-    if scores is not None and abs(scores[cur - 1] - scores[old - 1]) <= TIE_TOLERANCE:
+    if scores is not None and abs(scores[cur - 1] - scores[old - 1]) < tolerance:
         return 0.5
     return 1.0 if old < cur else 0.0
 
@@ -166,10 +169,12 @@ def evaluate_question(question: dict[str, Any], ranked_ids: list[str],
                         for e in question.get("outdated_evidence", [])) for c in ranked]
         row["stale"] = stale_score(current_doc, old_doc, scores)
         row["stale@5"] = stale_score(current_doc, old_doc, scores, within=5)
+        row["stale_exact"] = stale_score(current_doc, old_doc, scores, tolerance=EXACT_TIE)
         if question.get("stale_level", "fact") == "fact":
             row["fact_stale"] = stale_score(current_fact, old_fact, scores)
             row["fact_stale@5"] = stale_score(current_fact, old_fact, scores, within=5)
             row["fact_found"] = float(any(current_fact) or any(old_fact))
+            row["fact_stale_exact"] = stale_score(current_fact, old_fact, scores, tolerance=EXACT_TIE)
         # stale_level "doc" (e.g. rp-02: the old version has no competing fact): only doc-level stale
     return row
 

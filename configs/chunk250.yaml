@@ -1,0 +1,6 @@
+# Run 2a: smaller chunks (250 tokens). Only change vs baseline: chunk size/overlap.
+# 250 tokens fit inside MiniLM's 254-token window, so nothing is truncated.
+run_name: chunk250
+chunking:
+  chunk_size: 250
+  chunk_overlap: 25

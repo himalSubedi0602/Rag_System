@@ -24,6 +24,9 @@ retrieval:
   final_k: 5
   version_filter: none
   date_aware_rerank: false
+  small_to_big: false
+  piece_size: 250
+  piece_overlap: 25
 reranker:
   enabled: false
   model: cross-encoder/ms-marco-MiniLM-L-6-v2

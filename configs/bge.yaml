@@ -1,0 +1,5 @@
+# Run 5: bge-small instead of MiniLM. Reads 512 tokens, so 500-token chunks are not truncated.
+# Chunk boundaries are unchanged (tokens are still counted with the shared BERT tokenizer).
+run_name: bge
+embedding:
+  model: BAAI/bge-small-en-v1.5

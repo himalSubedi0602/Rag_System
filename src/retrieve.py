@@ -1,6 +1,6 @@
 """Retrieval: question -> ranked list of chunks.
 
-Phase 6 supports what the baseline needs (vector search). Phase 7 adds BM25 hybrid with
+Supported: vector search, and small-to-big (search pieces, return parent chunks). Phase 7 adds BM25 hybrid with
 reciprocal rank fusion, the cross-encoder reranker, the current-version filter and
 date-aware reranking, all inside `retrieve()`, each switched on by one config setting.
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.index import IndexBundle, vector_search
+from src.index import IndexBundle, small_to_big_search, vector_search
 
 
 def unsupported_settings(cfg: dict[str, Any]) -> list[str]:
@@ -32,4 +32,7 @@ def retrieve(question: str, bundle: IndexBundle, cfg: dict[str, Any]) -> list[tu
     problems = unsupported_settings(cfg)
     if problems:
         raise NotImplementedError(f"Not implemented yet (Phase 7): {', '.join(problems)}")
-    return vector_search(bundle.collection, bundle.embed_fn, question, cfg["retrieval"]["top_k_each"])
+    k = cfg["retrieval"]["top_k_each"]
+    if cfg["retrieval"]["small_to_big"]:
+        return small_to_big_search(bundle.piece_collection, bundle.embed_fn, question, k)
+    return vector_search(bundle.collection, bundle.embed_fn, question, k)

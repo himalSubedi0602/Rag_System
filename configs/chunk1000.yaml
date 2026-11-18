@@ -1,0 +1,6 @@
+# Run 2c: larger chunks (1000 tokens). Only change vs baseline: chunk size/overlap.
+# MiniLM still only embeds the first 254 tokens, so ~75% of each chunk is invisible to vector search.
+run_name: chunk1000
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 100

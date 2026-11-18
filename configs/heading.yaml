@@ -1,0 +1,5 @@
+# Run 3: heading-based chunks (one chunk per markdown section; long sections split at 500 tokens,
+# sections < 50 tokens merged into the next). PDFs fall back to fixed 500-token chunks.
+run_name: heading
+chunking:
+  strategy: heading
