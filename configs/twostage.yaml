@@ -1,0 +1,7 @@
+# Run 12: two-stage search. Top 3 documents by best bge chunk, then cross-encoder over all their chunks. Base = bge.
+run_name: twostage
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  two_stage: true
+  two_stage_docs: 3

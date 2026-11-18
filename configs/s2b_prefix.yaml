@@ -1,0 +1,6 @@
+# Run 7b step 1: small2big + title/section prefix. Base = small2big; only change: "Doc title > Section" on every piece.
+run_name: s2b_prefix
+chunking:
+  add_prefix: true
+retrieval:
+  small_to_big: true

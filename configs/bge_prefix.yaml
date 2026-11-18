@@ -1,0 +1,6 @@
+# Run 6p: bge + title/section prefix. Base = bge; only change: prefix on every chunk (truncation vs bge's 512 limit reported).
+run_name: bge_prefix
+embedding:
+  model: BAAI/bge-small-en-v1.5
+chunking:
+  add_prefix: true
