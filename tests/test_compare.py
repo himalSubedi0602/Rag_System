@@ -31,3 +31,9 @@ def test_fact_stale_paired_only_where_both_runs_found_a_fact():
     result = paired(A, B, "outdated_version")
     assert result.loc["fact_stale", "questions"] == 1              # o2 has no value in run A
     assert result.loc["fact_stale", "better"] == 1                 # 1.0 -> 0.0 is an improvement
+
+
+def test_history_group_and_empty_comparison():
+    assert paired(A, B, "history").loc["chunk_recall@5", "questions"] == 1
+    empty = paired(A[A["id"] == "none"], B[B["id"] == "none"], "overall")   # no shared questions
+    assert empty.empty and "chunk_recall@5" not in empty.index

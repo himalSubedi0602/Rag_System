@@ -94,12 +94,14 @@ def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFr
             overall = paired(ref_pq, pq, "overall")
             non_out = paired(ref_pq, pq, "non_outdated")
             outdated = paired(ref_pq, pq, "outdated_version")
+            history = paired(ref_pq, pq, "history")
             entry.update({
                 "Δ MAIN chunk R@5 (overall)": delta(overall, "chunk_recall@5"),
                 "Δ chunk R@5 (non_outdated, guardrail)": delta(non_out, "chunk_recall@5"),
                 "Δ fact_stale (by rank, both found)": delta(outdated, "fact_stale"),
                 "Δ stale doc-level (by rank)": delta(outdated, "stale"),
                 "Δ fact_found (outdated, guardrail)": delta(outdated, "fact_found"),
+                "Δ history chunk R@5 (guardrail)": delta(history, "chunk_recall@5"),
             })
         rows.append(entry)
     return pd.DataFrame(rows).set_index("run").fillna("")
@@ -115,6 +117,8 @@ def replication_table(results_dir: Path, reference: str, runs: list[str]) -> pd.
     subsets = {"original": set(groups["original_66"]), "new only": set(groups["new_60"])}
     subsets["combined"] = subsets["original"] | subsets["new only"]
     _, ref_pq = load_run(results_dir, reference)
+    if not ref_pq["id"].isin(subsets["combined"]).any():
+        return None                  # replication groups are tune questions; nothing to show on test
     rows = []
     for run in runs:
         if run == reference:
