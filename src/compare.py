@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import load_config, resolve_path
-from src.evaluate import BOOTSTRAP_SAMPLES, HEADLINE
+from src.evaluate import HEADLINE, bootstrap_ci
 
 PAIRED_METRICS = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_stale_exact", "fact_found", "stale"]
 LOWER_IS_BETTER = {"stale", "fact_stale", "fact_stale_exact"}
@@ -53,12 +53,10 @@ def side_by_side(a: pd.DataFrame, b: pd.DataFrame, name_a: str, name_b: str) -> 
     return pd.DataFrame(rows).set_index("group")
 
 
-def paired_bootstrap(diff: np.ndarray, seed: int = 0) -> tuple[float, float]:
-    """95% interval of the mean per-question difference (B - A). If it excludes 0, the change is
-    unlikely to be luck."""
-    rng = np.random.default_rng(seed)
-    means = rng.choice(diff, size=(BOOTSTRAP_SAMPLES, len(diff)), replace=True).mean(axis=1)
-    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+def paired_bootstrap(diff: np.ndarray, clusters: np.ndarray | None = None, seed: int = 0) -> tuple[float, float]:
+    """95% interval of the mean per-question difference (B - A), resampling whole clusters of linked
+    questions. If it excludes 0, the change is unlikely to be luck."""
+    return bootstrap_ci(diff, clusters, seed)
 
 
 def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame, group: str = "overall") -> pd.DataFrame:
@@ -72,13 +70,16 @@ def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame, group: str = "overall") -> pd
     for metric in PAIRED_METRICS:
         if f"{metric}_a" not in merged or f"{metric}_b" not in merged:
             continue  # an older run may not have this metric
-        both = merged[[f"{metric}_a", f"{metric}_b"]].dropna()
+        cols = [f"{metric}_a", f"{metric}_b"] + (["cluster_a"] if "cluster_a" in merged else [])
+        both = merged[cols].dropna(subset=[f"{metric}_a", f"{metric}_b"])
         if both.empty:
             continue
         diff = (both[f"{metric}_b"] - both[f"{metric}_a"]).to_numpy(float)
+        clusters = both["cluster_a"].to_numpy() if "cluster_a" in both else None
         sign = -1 if metric in LOWER_IS_BETTER else 1  # stale going down is an improvement
-        lo, hi = paired_bootstrap(diff)
+        lo, hi = paired_bootstrap(diff, clusters)
         rows.append({"metric": metric, "questions": len(diff),
+                     "clusters": len(set(clusters)) if clusters is not None else len(diff),
                      "better": int((sign * diff > 0).sum()), "worse": int((sign * diff < 0).sum()),
                      "same": int((diff == 0).sum()), "mean_diff (B-A)": round(float(diff.mean()), 3),
                      "95% CI of diff": f"[{lo:.3f}, {hi:.3f}]"})

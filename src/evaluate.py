@@ -35,7 +35,7 @@ import pandas as pd
 
 from src.testset import normalize
 
-TYPE_ORDER = ["lookup", "paraphrase", "exact_term", "multi_doc", "outdated_version", "real_pair", "history"]
+TYPE_ORDER = ["lookup", "paraphrase", "exact_term", "multi_doc", "compound", "outdated_version", "real_pair", "history"]
 SEPARATE_TYPES = {"history", "real_pair"}   # sanity checks: own rows, not part of "overall"
 # Headline metrics get 95% CIs. The version metric is fact_stale (on questions where a fact chunk was
 # found), always reported with fact_found; doc-level stale is secondary.
@@ -189,14 +189,21 @@ def metric_columns(ks: list[int]) -> list[str]:
             [f"chunk_recall@{k}" for k in ks] + ["chunk_mrr"] + STALE_COLS + DIAGNOSTIC_COLS)
 
 
-def bootstrap_ci(values: np.ndarray, seed: int = 0) -> tuple[float, float]:
-    """95% interval for a mean: resample the questions with replacement many times and take the
-    2.5th and 97.5th percentiles of the resampled means. Wide interval = few or noisy questions."""
-    values = values[~np.isnan(values)]
+def bootstrap_ci(values: np.ndarray, clusters: np.ndarray | None = None, seed: int = 0) -> tuple[float, float]:
+    """95% interval for a mean by CLUSTER bootstrap: resample whole clusters of linked questions (same
+    fact, or gold in the same chunk) with replacement, recompute the mean over all their questions, and
+    take the 2.5th/97.5th percentiles. Without clusters every question is its own cluster."""
+    values = np.asarray(values, dtype=float)
+    keep = ~np.isnan(values)
+    values = values[keep]
     if len(values) == 0:
         return float("nan"), float("nan")
+    clusters = np.arange(len(values)) if clusters is None else np.asarray(clusters)[keep]
+    _, idx = np.unique(clusters, return_inverse=True)
+    sums, counts = np.bincount(idx, weights=values), np.bincount(idx)   # per-cluster total and size
     rng = np.random.default_rng(seed)
-    means = rng.choice(values, size=(BOOTSTRAP_SAMPLES, len(values)), replace=True).mean(axis=1)
+    draw = rng.integers(0, len(sums), size=(BOOTSTRAP_SAMPLES, len(sums)))
+    means = sums[draw].sum(axis=1) / counts[draw].sum(axis=1)
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
@@ -224,8 +231,10 @@ def aggregate(rows: list[dict[str, Any]], ks: list[int]) -> pd.DataFrame:
             continue
         entry: dict[str, Any] = {"group": name, "n": len(part)}
         entry.update(part[cols].mean(numeric_only=True).to_dict())   # mean skips NaN
+        clusters = part["cluster"].to_numpy() if "cluster" in part else None
+        entry["clusters"] = part["cluster"].nunique() if "cluster" in part else len(part)
         for metric in HEADLINE:
-            entry[f"{metric}_lo"], entry[f"{metric}_hi"] = bootstrap_ci(part[metric].to_numpy(float))
+            entry[f"{metric}_lo"], entry[f"{metric}_hi"] = bootstrap_ci(part[metric].to_numpy(float), clusters)
         table.append(entry)
     ci_cols = [f"{m}_{side}" for m in HEADLINE for side in ("lo", "hi")]
-    return pd.DataFrame(table).set_index("group")[["n"] + cols + ci_cols]
+    return pd.DataFrame(table).set_index("group")[["n", "clusters"] + cols + ci_cols]

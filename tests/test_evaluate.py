@@ -245,3 +245,11 @@ def test_tie_tolerance_treats_tiny_gaps_as_ties():
     assert stale_score([False, True], [True, False], scores=[0.803, 0.800]) == 0.5            # gap 0.003 < 0.005
     assert stale_score([False, True], [True, False], scores=[0.803, 0.800], tolerance=EXACT_TIE) == 1.0
     assert stale_score([False, True], [True, False], scores=[0.810, 0.800]) == 1.0            # gap 0.010: real
+
+
+def test_cluster_bootstrap_is_wider_when_questions_are_linked():
+    values = np.array([1.0] * 10 + [0.0] * 10)
+    independent = bootstrap_ci(values)
+    linked = bootstrap_ci(values, clusters=np.array([0] * 10 + [1] * 10))   # two big clusters
+    assert (linked[1] - linked[0]) > (independent[1] - independent[0])
+    assert bootstrap_ci(values, clusters=np.arange(20)) == independent    # singletons = plain bootstrap

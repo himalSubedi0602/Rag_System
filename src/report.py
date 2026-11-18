@@ -16,6 +16,7 @@ otherwise "–" (no detectable difference).
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -60,7 +61,7 @@ def delta(diffs: pd.DataFrame, metric: str) -> str:
         return "n/a"
     d = diffs.loc[metric]
     return (f"{d['mean_diff (B-A)']:+.3f} {d['95% CI of diff']} {verdict(d, metric)} "
-            f"({d['better']}/{d['worse']}, n={d['questions']})")
+            f"({d['better']}/{d['worse']}, n={d['questions']}, {d['clusters']} clusters)")
 
 
 def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFrame:
@@ -100,6 +101,42 @@ def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFr
     return pd.DataFrame(rows).set_index("run").fillna("")
 
 
+def replication_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFrame | None:
+    """Main-metric paired Δ on the frozen replication groups (eval/replication_groups.json):
+    original questions, new questions only, and combined."""
+    path = resolve_path("eval/replication_groups.json")
+    if not path.exists():
+        return None
+    groups = json.loads(path.read_text())
+    subsets = {"original": set(groups["original_66"]), "new only": set(groups["new_60"])}
+    subsets["combined"] = subsets["original"] | subsets["new only"]
+    _, ref_pq = load_run(results_dir, reference)
+    rows = []
+    for run in runs:
+        if run == reference:
+            continue
+        _, pq = load_run(results_dir, run)
+        entry = {"run": run}
+        for name, ids in subsets.items():
+            diffs = paired(ref_pq[ref_pq["id"].isin(ids)], pq[pq["id"].isin(ids)], "overall")
+            entry[f"Δ chunk R@5 ({name}, n={len(ids)})"] = delta(diffs, "chunk_recall@5")
+        rows.append(entry)
+    return pd.DataFrame(rows).set_index("run")
+
+
+def breakdown_table(results_dir: Path, runs: list[str], column: str) -> pd.DataFrame:
+    """Mean chunk R@5 per run, split by a question attribute (question_type or doc_group), on `overall`."""
+    questions = pd.read_json(resolve_path("eval/questions.jsonl"), lines=True)[["id", "doc_group"]]
+    table = {}
+    for run in runs:
+        _, pq = load_run(results_dir, run)
+        pq = pq.merge(questions, on="id")
+        pq = pq[~pq["question_type"].isin(["history", "real_pair"])]
+        means = pq.groupby(column)["chunk_recall@5"].agg(["mean", "size"])
+        table[run] = {f"{g} (n={int(r['size'])})": f"{r['mean']:.3f}" for g, r in means.iterrows()}
+    return pd.DataFrame(table).T
+
+
 def to_markdown(df: pd.DataFrame, columns: list[str]) -> str:
     header = "| run | " + " | ".join(columns) + " |"
     sep = "|---" * (len(columns) + 1) + "|"
@@ -134,6 +171,14 @@ def main() -> None:
         f"## Retrieval levels (95% bootstrap intervals)\n\n{to_markdown(table, level_cols)}\n\n"
         "## Version metrics (each run on its own found set; see the paired Δ above for comparisons)\n\n"
         f"{to_markdown(table, version_cols)}\n\n## Cost and diagnostics\n\n{to_markdown(table, cost_cols)}\n")
+    repl = replication_table(results_dir, reference, runs)
+    if repl is not None:
+        text += ("\n## Replication (frozen groups in eval/replication_groups.json)\n\n"
+                 "An effect replicates if it has the same sign on the new questions; it is confirmed only if the "
+                 "combined interval excludes zero.\n\n" + to_markdown(repl, list(repl.columns)) + "\n")
+    for column in ("question_type", "doc_group"):
+        bd = breakdown_table(results_dir, runs, column)
+        text += f"\n## chunk R@5 by {column} (`overall` questions)\n\n" + to_markdown(bd, list(bd.columns)) + "\n"
     out = results_dir / f"report_{args.name}.md"
     out.write_text(text, encoding="utf-8")
     with pd.option_context("display.width", 300, "display.max_columns", 30, "display.max_colwidth", 48):
