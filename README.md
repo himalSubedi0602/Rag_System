@@ -56,6 +56,7 @@ python -m src.download_data
 python -m src.ingest
 python -m src.inspect_docs --n 5
 python -m src.chunking configs/baseline.yaml
+python -m src.index configs/baseline.yaml --query "How many days do I have to submit an expense claim?"
 ```
 
 - **Handbook:** selected sections of the [GitLab public handbook](https://gitlab.com/gitlab-com/content-sites/handbook)

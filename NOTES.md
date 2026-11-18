@@ -85,3 +85,32 @@ One entry per phase: what was built, key decisions, results so far.
   92.6% of chunks are cut off and 46.6% of all chunk tokens are never embedded.
   For comparison: heading-based 25.5% unseen; 250-token chunks 0%; bge-small (512 limit) 0%;
   the prefix makes it slightly worse (48.1%) because it adds ~12 tokens in front.
+
+## Phase 4: Indexing (2026-11-17)
+
+**Built**
+- `src/index.py`: embeds chunks into a persistent Chroma collection (cosine distance) and builds a BM25
+  index; `vector_search` / `bm25_search` return `(chunk_id, score)` lists; `build_indexes` returns an
+  `IndexBundle` for retrieval. CLI `--query` compares both searches side by side.
+- `tests/test_index.py`: 11 tests with a fake letter-count embedder (52 total in the repo).
+
+**Key decisions**
+- **One collection per index setup** (`<chunking>__<model>__<prefix>`), reused when a stored
+  fingerprint of all chunk ids + content hashes matches; otherwise rebuilt. Same idea as Phase 2's cache.
+- **`embedding_function=None` on every collection:** Chroma otherwise attaches its own default model and
+  would silently download it; we always pass our own vectors.
+- **Embeddings are normalized**, so cosine similarity = dot product; scores shown as 1 - distance.
+- **Metadata:** Chroma 1.5 accepts lists, so `access_roles` stays a list (`$contains` filter); only
+  `None` needs placeholders (`page` -> -1, missing date -> ""). `is_current` stays a boolean so run 8 is
+  just `where={"is_current": True}`.
+- **BM25 rebuilt in memory** on load (well under a second) instead of pickled to disk: no stale files.
+  Plain lower-case word tokens, no stemming or stopword list (no extra libraries).
+- **Truncation limit verified:** loading MiniLM checks `max_seq_length` (256) against the table used in
+  Phase 3's truncation stats.
+
+**Results so far**
+- Baseline collection `fixed-500-50__minilm__noprefix`: 2,314 chunks embedded in ~11 s (Apple MPS);
+  reused in 0.2 s on the next run.
+- Spot check "How many days do I have to submit an expense claim?": vector search ranks the "90 days"
+  chunk 1st; BM25 ranks it 3rd, pulled off course by common words ("days", "have") and an outdated legacy
+  agreement. For the exact term "Navan", BM25's top 3 are all relevant. -> motivation for hybrid (run 6).
