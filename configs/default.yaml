@@ -32,8 +32,10 @@ retrieval:
   top_k_each: 30           # candidates taken from each retriever
   rrf_k: 60                # constant in reciprocal rank fusion
   final_k: 5               # chunks passed on after (optional) reranking
-  version_filter: none     # none | current_only
-  date_aware_rerank: false
+  version_filter: none     # none | exclude_superseded (run 8) | exclude_legacy (run 8b): removed before search
+  date_aware_rerank: false # run 9: score' = (1 - w) * rank-based relevance + w * corpus-scaled recency
+  date_weight: 0.25        # w for date_aware_rerank (pre-registered values 0.1 / 0.25 / 0.5)
+  version_swap: false      # run 9b: replace superseded chunks with the current version's most similar chunk
   max_per_version_group: 0  # run 6b: at most this many chunks per version_group in the results (0 = off)
   two_stage: false         # run 12: top documents first, then rerank chunks only within them
   two_stage_docs: 3

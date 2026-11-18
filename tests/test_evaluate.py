@@ -110,9 +110,13 @@ def test_aggregate_overall_and_by_type():
 # --- retrieve guard -------------------------------------------------------------------------
 
 def test_unsupported_settings_are_reported():
-    cfg = {"retrieval": {"mode": "hybrid", "version_filter": "current_only", "date_aware_rerank": True},
+    cfg = {"retrieval": {"mode": "hybrid", "version_filter": "bogus", "date_aware_rerank": True,
+                         "version_swap": False, "two_stage": True},
            "reranker": {"enabled": True}}
-    assert unsupported_settings(cfg) == ["retrieval.version_filter=current_only", "retrieval.date_aware_rerank=true"]
+    assert unsupported_settings(cfg) == ["retrieval.version_filter=bogus",
+                                         "two_stage combined with version handling"]
+    cfg["retrieval"].update(version_filter="exclude_superseded", two_stage=False)
+    assert unsupported_settings(cfg) == []
 
 
 # --- matching rule: exact for short quotes, 80% of words for long ones ------------------------
