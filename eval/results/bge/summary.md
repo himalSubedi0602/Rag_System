@@ -1,12 +1,12 @@
 # Run: bge
 
-- split: **tune** (84 questions; no_answer excluded from retrieval metrics)
+- split: **tune** (144 questions; no_answer excluded from retrieval metrics)
 - chunking: fixed size=500 overlap=50 prefix=False
 - embedding: BAAI/bge-small-en-v1.5
 - retrieval: mode=vector top_k=30 version_filter=none date_aware=False reranker=False
 - chunks: 2468 (embedded units: 2468); truncated by the embedding model: 0.0% of units, 0.0% of tokens never embedded
-- gold quotes reachable in this chunking: 84/84
-- run at: 2026-11-18 14:08
+- gold quotes reachable in this chunking: 159/159
+- run at: 2026-11-18 14:53
 
 ## Headline metrics (95% bootstrap intervals in brackets)
 
@@ -16,29 +16,31 @@ Retrieval: **chunk_recall@5** (main), chunk_mrr; doc_recall@5 is a lenient upper
 
 | group | n | doc_R@1 | chunk_R@1 | chunk_R@30 | chunk_R@100 | chunk_recall@5 | chunk_mrr | doc_recall@5 | fact_stale | fact_found | stale |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| overall | 66 | 0.447 | 0.174 | 0.780 | 0.864 | 0.553 [0.44, 0.67] | 0.377 [0.29, 0.47] | 0.833 [0.74, 0.92] | 0.529 [0.50, 0.59] | 0.680 [0.48, 0.84] | 0.543 [0.50, 0.61] |
-| non_outdated | 41 | 0.646 | 0.280 | 0.841 | 0.878 | 0.622 [0.48, 0.76] | 0.470 [0.35, 0.59] | 0.902 [0.80, 0.98] |  |  |  |
-| lookup | 17 | 0.824 | 0.235 | 0.882 | 0.882 | 0.706 [0.47, 0.88] | 0.465 [0.31, 0.63] | 0.941 [0.82, 1.00] |  |  |  |
-| paraphrase | 10 | 0.500 | 0.200 | 0.700 | 0.700 | 0.300 [0.00, 0.60] | 0.267 [0.06, 0.53] | 0.900 [0.70, 1.00] |  |  |  |
-| exact_term | 7 | 0.714 | 0.571 | 0.857 | 1.000 | 0.857 [0.57, 1.00] | 0.667 [0.33, 0.90] | 0.857 [0.57, 1.00] |  |  |  |
-| multi_doc | 7 | 0.357 | 0.214 | 0.929 | 1.000 | 0.643 [0.36, 0.86] | 0.579 [0.29, 0.82] | 0.857 [0.57, 1.00] |  |  |  |
-| outdated_version | 25 | 0.120 | 0.000 | 0.680 | 0.840 | 0.440 [0.24, 0.64] | 0.222 [0.14, 0.31] | 0.720 [0.56, 0.88] | 0.529 [0.50, 0.59] | 0.680 [0.48, 0.84] | 0.543 [0.50, 0.61] |
+| overall | 126 | 0.480 | 0.210 | 0.786 | 0.873 | 0.548 [0.46, 0.64] | 0.398 [0.33, 0.47] | 0.798 [0.72, 0.88] | 0.529 [0.50, 0.60] | 0.680 [0.48, 0.85] | 0.543 [0.50, 0.61] |
+| non_outdated | 101 | 0.569 | 0.262 | 0.812 | 0.881 | 0.574 [0.47, 0.66] | 0.442 [0.36, 0.51] | 0.817 [0.73, 0.89] |  |  |  |
+| lookup | 42 | 0.690 | 0.310 | 0.905 | 0.952 | 0.714 [0.56, 0.86] | 0.481 [0.37, 0.60] | 0.905 [0.78, 1.00] |  |  |  |
+| paraphrase | 30 | 0.467 | 0.167 | 0.667 | 0.767 | 0.300 [0.13, 0.47] | 0.253 [0.13, 0.39] | 0.667 [0.47, 0.83] |  |  |  |
+| exact_term | 7 | 0.714 | 0.571 | 0.857 | 1.000 | 0.857 [0.57, 1.00] | 0.667 [0.38, 0.90] | 0.857 [0.57, 1.00] |  |  |  |
+| multi_doc | 15 | 0.433 | 0.200 | 0.967 | 1.000 | 0.700 [0.50, 0.83] | 0.606 [0.47, 0.69] | 0.867 [0.73, 1.00] |  |  |  |
+| compound | 7 | 0.429 | 0.214 | 0.500 | 0.571 | 0.357 [0.00, 0.71] | 0.437 [0.01, 0.86] | 0.786 [0.58, 0.94] |  |  |  |
+| outdated_version | 25 | 0.120 | 0.000 | 0.680 | 0.840 | 0.440 [0.27, 0.64] | 0.222 [0.15, 0.31] | 0.720 [0.52, 0.91] | 0.529 [0.50, 0.60] | 0.680 [0.48, 0.85] | 0.543 [0.50, 0.61] |
 | real_pair | 1 | 0.000 | 0.000 | 1.000 | 1.000 | 0.000 [0.00, 0.00] | 0.100 [0.10, 0.10] | 1.000 [1.00, 1.00] | 1.000 [1.00, 1.00] | 1.000 [1.00, 1.00] | 1.000 [1.00, 1.00] |
 | history | 10 | 0.300 | 0.300 | 0.700 | 0.900 | 0.600 [0.30, 0.90] | 0.429 [0.20, 0.70] | 0.800 [0.50, 1.00] |  |  |  |
 
 ## All metrics
 
-| group | n | doc_recall@1 | doc_recall@3 | doc_recall@5 | doc_mrr | chunk_recall@1 | chunk_recall@3 | chunk_recall@5 | chunk_mrr | stale | stale@5 | fact_stale | fact_stale@5 | fact_found | stale_exact | fact_stale_exact | chunk_recall@30 | chunk_recall@100 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| overall | 66.000 | 0.447 | 0.742 | 0.833 | 0.641 | 0.174 | 0.477 | 0.553 | 0.377 | 0.543 | 0.553 | 0.529 | 0.542 | 0.680 | 0.761 | 0.765 | 0.780 | 0.864 |
-| non_outdated | 41.000 | 0.646 | 0.829 | 0.902 | 0.782 | 0.280 | 0.549 | 0.622 | 0.470 |  |  |  |  |  |  |  | 0.841 | 0.878 |
-| lookup | 17.000 | 0.824 | 0.941 | 0.941 | 0.882 | 0.235 | 0.647 | 0.706 | 0.465 |  |  |  |  |  |  |  | 0.882 | 0.882 |
-| paraphrase | 10.000 | 0.500 | 0.800 | 0.900 | 0.637 | 0.200 | 0.300 | 0.300 | 0.267 |  |  |  |  |  |  |  | 0.700 | 0.700 |
-| exact_term | 7.000 | 0.714 | 0.857 | 0.857 | 0.762 | 0.571 | 0.857 | 0.857 | 0.667 |  |  |  |  |  |  |  | 0.857 | 1.000 |
-| multi_doc | 7.000 | 0.357 | 0.571 | 0.857 | 0.764 | 0.214 | 0.357 | 0.643 | 0.579 |  |  |  |  |  |  |  | 0.929 | 1.000 |
-| outdated_version | 25.000 | 0.120 | 0.600 | 0.720 | 0.410 | 0.000 | 0.360 | 0.440 | 0.222 | 0.543 | 0.553 | 0.529 | 0.542 | 0.680 | 0.761 | 0.765 | 0.680 | 0.840 |
-| real_pair | 1.000 | 0.000 | 1.000 | 1.000 | 0.333 | 0.000 | 0.000 | 0.000 | 0.100 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
-| history | 10.000 | 0.300 | 0.800 | 0.800 | 0.561 | 0.300 | 0.500 | 0.600 | 0.429 |  |  |  |  |  |  |  | 0.700 | 0.900 |
+| group | n | clusters | doc_recall@1 | doc_recall@3 | doc_recall@5 | doc_mrr | chunk_recall@1 | chunk_recall@3 | chunk_recall@5 | chunk_mrr | stale | stale@5 | fact_stale | fact_stale@5 | fact_found | stale_exact | fact_stale_exact | chunk_recall@30 | chunk_recall@100 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| overall | 126.000 | 75.000 | 0.480 | 0.726 | 0.798 | 0.676 | 0.210 | 0.464 | 0.548 | 0.398 | 0.543 | 0.553 | 0.529 | 0.542 | 0.680 | 0.761 | 0.765 | 0.786 | 0.873 |
+| non_outdated | 101.000 | 61.000 | 0.569 | 0.757 | 0.817 | 0.742 | 0.262 | 0.490 | 0.574 | 0.442 |  |  |  |  |  |  |  | 0.812 | 0.881 |
+| lookup | 42.000 | 34.000 | 0.690 | 0.881 | 0.905 | 0.791 | 0.310 | 0.619 | 0.714 | 0.481 |  |  |  |  |  |  |  | 0.905 | 0.952 |
+| paraphrase | 30.000 | 28.000 | 0.467 | 0.633 | 0.667 | 0.559 | 0.167 | 0.300 | 0.300 | 0.253 |  |  |  |  |  |  |  | 0.667 | 0.767 |
+| exact_term | 7.000 | 7.000 | 0.714 | 0.857 | 0.857 | 0.762 | 0.571 | 0.857 | 0.857 | 0.667 |  |  |  |  |  |  |  | 0.857 | 1.000 |
+| multi_doc | 15.000 | 8.000 | 0.433 | 0.667 | 0.867 | 0.890 | 0.200 | 0.433 | 0.700 | 0.606 |  |  |  |  |  |  |  | 0.967 | 1.000 |
+| compound | 7.000 | 5.000 | 0.429 | 0.643 | 0.786 | 0.893 | 0.214 | 0.286 | 0.357 | 0.437 |  |  |  |  |  |  |  | 0.500 | 0.571 |
+| outdated_version | 25.000 | 22.000 | 0.120 | 0.600 | 0.720 | 0.410 | 0.000 | 0.360 | 0.440 | 0.222 | 0.543 | 0.553 | 0.529 | 0.542 | 0.680 | 0.761 | 0.765 | 0.680 | 0.840 |
+| real_pair | 1.000 | 1.000 | 0.000 | 1.000 | 1.000 | 0.333 | 0.000 | 0.000 | 0.000 | 0.100 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| history | 10.000 | 10.000 | 0.300 | 0.800 | 0.800 | 0.561 | 0.300 | 0.500 | 0.600 | 0.429 |  |  |  |  |  |  |  | 0.700 | 0.900 |
 
 ## Answerable questions with no gold document in the top 5
 
@@ -55,6 +57,18 @@ Retrieval: **chunk_recall@5** (main), chunk_mrr; doc_recall@5 is a lenient upper
 | ov-34 | outdated_version | not found | hb:security/security-assurance/security-risk/storm-program | How long does GitLab keep risk treatment plans? |
 | ov-38 | outdated_version | 22 | hb:legal/subscription-agreement/index | Whose approval is needed if a GitLab team member books more than 5 co-working days in a month? |
 | ov-44 | outdated_version | not found | hb:legal/legacy/legacy-subscription-agreement-v7 | What discount on legal fees does GitLab's US legal services benefit provide? |
+| lk-26 | lookup | 15 | hb:support/license-and-renewals/workflows/self-managed/troubleshoot_cloud_licensing | Which TLS version must be enabled and preferred in new GitLab deployments? |
+| lk-32 | lookup | 9 | hb:legal/subscription-agreement/index | What happens when an emergency ticket comes in to GitLab Support? |
+| lk-33 | lookup | 8 | hb:support/support-engineer-responsibilities | I've been on an emergency customer ticket for over an hour and two colleagues have joined in. What should I set up? |
+| pp-19 | paraphrase | not found | hb:total-rewards/benefits/general-and-entity-benefits/france-sas | Working remotely for GitLab France, what's the shortest break I must have between finishing one day and starting the next? |
+| pp-22 | paraphrase | 6 | syn:ltd-benefits-uk-2023 | Will GitLab top up my retirement savings in Singapore beyond the government scheme? |
+| pp-24 | paraphrase | 19 | hb:total-rewards/compensation | Which appraisal result lets me put myself forward for a different position within GitLab? |
+| pp-25 | paraphrase | 13 | hb:hiring/interviewing/infrastructure-interview | Before putting in for a role on another team at GitLab, who should I talk to first? |
+| pp-27 | paraphrase | not found | hb:support/support-time-off | Someone outside GitLab is funding my journey. Am I allowed to add some holiday time afterwards? |
+| pp-30 | paraphrase | not found | hb:people-policies | I'm working from a café. How should I handle my GitLab laptop? |
+| pp-31 | paraphrase | 25 | hb:legal/legacy/privacy-statement-v2 | Do I need a PIN on my own phone if I use it for GitLab work? |
+| pp-32 | paraphrase | 8 | hb:legal/esg/fy23-esg-report | Does GitLab give staff in Belgium anything each year towards environmentally friendly purchases? |
+| pp-34 | paraphrase | 9 | hb:finance/procurement/vendor-guidelines/vendor-agreement | A supplier is chasing an overdue invoice and I flagged it as urgent. When will GitLab actually pay it? |
 
 ## Outdated-version questions
 

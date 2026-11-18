@@ -330,3 +330,100 @@ is unchanged. Every 7b run is compared with both the base (small2big) and the or
   fact_stale (both found) plus stale at tie tolerances **0.001, 0.005 and 0.01**. The 0.005 tolerance
   was chosen after 7a; the other two show how much conclusions depend on it.
 - Main metric, improvement rule, guardrail and test-split rule are unchanged.
+
+## Test-set expansion (2026-11-18, written BEFORE the new questions are drafted or any run is repeated)
+
+**Purpose and replication plan (fixed now)**
+- ~60 new TUNE questions (lookup, paraphrase, multi_doc); the 39 test questions are untouched.
+- **The new questions are a replication test of the 7a effects.** They will be drafted without looking at
+  any per-question 7a results. After approval, the baseline and all 7a runs are re-run and every paired
+  comparison is reported on three groups: the **original 66** `overall` questions, the **new ~60 only**, and
+  **combined**. The effects to replicate are: small2big (+0.068 overall, secondary gains), bge (+0.098),
+  heading (+0.053, fact_found gain). An effect "replicates" if it has the same sign on the new questions;
+  it is "confirmed" only if the combined paired 95% interval excludes zero (unchanged pre-registered rule).
+- Results are also reported by question type and by document group, because the new questions
+  deliberately use documents that the test split does not.
+- **Composition change:** outdated_version questions become a smaller share of `overall`
+  (25/66 = 38% now, ~25/126 = 20% after). Overall chunk recall will therefore weigh ordinary retrieval
+  more and version handling less; version results are judged on fact_stale / fact_found, not on overall.
+- **Paraphrase check:** for every paraphrase question, the share of its content words that also appear in
+  the gold quote is computed; any above 40% is rewritten. Distributions for old vs new are reported.
+- About a third of the new questions are scenario-style (how an employee would really ask).
+- Multi-doc questions must need both documents; scoring is per evidence item (each document counts half).
+
+**Drafted (awaiting approval; no runs repeated yet)**
+- 60 new tune questions: 25 lookup (lk-26..50), 20 paraphrase (pp-16..35), 15 multi_doc (md-11..25);
+  20 scenario-style (1/3). 36 documents, max 3 new questions each. Test split unchanged (39).
+- `overall` grows from 66 to 126; outdated_version share drops from 25/66 (38%) to 25/126 (20%).
+- Paraphrase word overlap (content words of the question found in the gold quote; title words ignored):
+  old 15: median 0%, max 40%; new 20: median 6%, max 30%. One old question (pp-02, 50%) was reworded,
+  so one of the original 66 changed wording.
+- Validator additions: overlap > 40% for paraphrase is an error; a quote may be reused only by a
+  multi_doc question; every question gets `style` and `doc_group`. It rejected 3 drafts whose quotes
+  also appear in unrelated documents (Ireland/France disconnect wording, a tier name).
+- 7 of the 36 new-question documents are also used by test questions (different facts).
+- Replication groups frozen in `eval/replication_groups.json` before any re-run.
+
+**Revision after review (still before any re-run)**
+- **pp-02 reworded inside the frozen original-66 group.** Its word overlap with the gold quote was 50%,
+  above the 40% paraphrase limit adopted for this expansion (it shared "co-working", "month", "home",
+  "internet"). New wording: "If the company covers a shared office desk for me all month, can I also get my
+  broadband at home paid for?" (overlap 22%). Same fact, same gold; only the wording changed. Its 7a
+  results were computed on the old wording, so the original-66 comparison includes this one change.
+- **Fact independence check (validator):** two evidence items are the same fact if they come from the same
+  document and one quote contains the other, or (when their numbers don't differ) they share >= 60% of their
+  content words. Applies to all question types. Pairs involving a new question are errors; pairs among the
+  original 123 are reported only (the test split can't change).
+  Result on all 183: 42 pairs before the revision (12 among the original 123, 30 involving new questions,
+  all through the first 15 new multi_doc questions); after: **0 involving new questions**; the 12 original
+  pairs remain (10 are old multi_doc questions reusing lookup/exact_term facts, plus lk-04/ov-38 and md-04/md-08).
+- **All 15 new multi_doc questions replaced** with pairs built only from facts no other question uses, and
+  where the two facts differ (no "both the same" answers).
+- pp-24 and pp-32 rewritten with specific answers (pp-32's old quote "Changes are approved by appropriate
+  stakeholders" was generic process wording; similar phrasing appears in 3 documents).
+- **lk-47 corrected:** the St Andrews rule is that leave *carried forward from the previous year* is lost if
+  not used by 31 December; the first draft implied all unused leave is lost.
+
+**Further changes approved before any re-run (2026-11-18)**
+- **New question type `compound`** (added before any re-run): two UNRELATED facts from two documents in one
+  question (md-12, md-13, md-14, md-15, md-21, md-23, md-25). multi_doc now means two RELATED facts that
+  are compared or combined (md-01..11, md-16..20, md-22, md-24). compound is its own row and stays in
+  `overall` and `non_outdated`.
+- **Cluster bootstrap for all verdicts from now on.** Linked questions are resampled together: the 12
+  reported same-fact pairs, plus questions whose gold quotes fall in the same baseline chunk. Each connected
+  group of linked questions is one cluster; unlinked questions are their own cluster.
+- **Candidate future run (not in 7b): query splitting for compound questions** - split a two-part question
+  into two sub-queries, retrieve for each, merge the results. Listed only; not pre-registered.
+
+**Results on the expanded tune set (2026-11-18; cluster bootstrap; reference = baseline)**
+
+Clusters: 12 same-fact pairs + 124 same-chunk pairs -> 105 clusters overall; the 126 `overall` tune
+questions form **75 clusters** (largest 15). Baseline: chunk R@5 0.496 [0.40, 0.59], R@100 0.806.
+With ~75 independent units the detectable effect is still ~0.13 (2.8 x 0.39 / sqrt(75)): the expansion
+added questions but, because many share chunks, much less independent evidence than hoped.
+
+| run | Δ chunk R@5 original-66 | Δ new-60 | Δ combined (MAIN) | Δ non_outdated | Δ fact_found |
+|---|---|---|---|---|---|
+| chunk250 | -0.038 – | -0.067 – | -0.052 [-0.14, 0.05] – | -0.035 – | +0.04 – |
+| chunk1000 | +0.015 – | +0.125 [0.00, 0.25] – | +0.067 [-0.02, 0.14] – | **+0.094 [0.005, 0.17] ✅** | +0.08 – |
+| small2big | +0.068 – | +0.008 – | +0.040 [-0.02, 0.11] – | +0.050 – | **+0.24 [0.08, 0.44] ✅** |
+| heading | +0.038 – | **-0.125** [-0.25, 0.00] – | -0.040 [-0.12, 0.03] – | -0.069 – | **+0.28 [0.08, 0.50] ✅** |
+| prefix | +0.015 – | +0.075 – | +0.044 [-0.02, 0.11] – | +0.054 – | +0.04 – |
+| bge | +0.098 – | +0.000 – | +0.052 [-0.05, 0.16] – | +0.045 – | +0.20 – |
+
+**Replication verdicts (pre-registered above):**
+- small2big: same sign on new questions (+0.008) -> "replicates" only in the weakest sense; effect is
+  near zero on new questions. Not confirmed (combined interval includes zero). Its fact_found gain holds.
+- bge: no replication (+0.000 on new). Not confirmed.
+- heading: reversed (-0.125 on new). Not confirmed; its fact_found gain holds.
+- chunk1000 (not one of the three effects under test): +0.125 on new, +0.094 non_outdated ✅ - a new,
+  unpredicted result, treated as exploratory (one of many comparisons), not as a finding.
+- **No run is a pre-registered improvement on the main metric.** The 7a "promising" effects were largely
+  specific to the original 66 questions.
+
+By document group (baseline chunk R@5): total-rewards 0.74, pdf 0.67, security 0.38, finance 0.36,
+people-policies 0.29, support 0.20, hiring 0.17 - long policy pages (finance/expenses, security) are hard,
+short benefit pages are easy. Compound (n=7, 5 clusters) 0.43; multi_doc (n=15, 8 clusters) 0.57.
+
+**Consequence for 7b (decision unchanged, reasoning restated):** small2big stays the 7b base because it
+removes truncation (measurement validity), not because of a recall gain - which did not replicate.

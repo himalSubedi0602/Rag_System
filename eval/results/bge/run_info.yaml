@@ -1,8 +1,8 @@
 chunks: 2468
 embedded_units: 2468
-quotes_reachable: 84/84
+quotes_reachable: 159/159
 vector_index_mb: 3.7
 chunks_truncated_pct: 0.0
 tokens_unseen_pct: 0.0
-mean_latency_ms: 13.7
-questions: 84
+mean_latency_ms: 9.8
+questions: 144
