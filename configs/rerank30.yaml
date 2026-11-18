@@ -1,0 +1,7 @@
+# Run 7: bge + cross-encoder reranker over the top 30. Base = bge.
+run_name: rerank30
+embedding:
+  model: BAAI/bge-small-en-v1.5
+reranker:
+  enabled: true
+  candidates: 30

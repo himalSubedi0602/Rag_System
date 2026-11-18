@@ -1,0 +1,7 @@
+# Run 7b step 1: small2big + heading-as-parent. Base = small2big; only change: parents are markdown sections
+# (heading chunks, max 500 tokens) instead of fixed 500-token chunks; 250-token pieces inside them.
+run_name: s2b_heading
+chunking:
+  strategy: heading
+retrieval:
+  small_to_big: true

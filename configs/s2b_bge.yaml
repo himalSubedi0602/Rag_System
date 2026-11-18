@@ -1,0 +1,6 @@
+# Run 7b step 1: small2big + bge-small. Base = small2big; only change: the embedding model (embeds the 250-token pieces).
+run_name: s2b_bge
+retrieval:
+  small_to_big: true
+embedding:
+  model: BAAI/bge-small-en-v1.5

@@ -7,8 +7,8 @@ Every number says which question group it comes from:
   overall       answerable questions except the sanity checks (history, real_pair)
                 -> chunk_recall@5 here is the PRE-REGISTERED MAIN retrieval metric; its verdict is the main one
   non_outdated  overall minus outdated_version (guardrail: side effects on ordinary questions)
-  outdated      outdated_version questions; fact_stale is paired ONLY on questions where both runs
-                retrieved a fact chunk, with the 0.005 tie tolerance (and without, as *_exact)
+  outdated      outdated_version questions; fact_stale (by rank, every run) is paired ONLY on questions
+                where both runs retrieved a fact chunk; tolerance variants exist for cosine runs only
 Verdicts follow the pre-registered rule: ✅ / ❌ only if the paired 95% interval excludes zero,
 otherwise "–" (no detectable difference).
 """
@@ -61,7 +61,7 @@ def delta(diffs: pd.DataFrame, metric: str) -> str:
         return "n/a"
     d = diffs.loc[metric]
     return (f"{d['mean_diff (B-A)']:+.3f} {d['95% CI of diff']} {verdict(d, metric)} "
-            f"({d['better']}/{d['worse']}, n={d['questions']}, {d['clusters']} clusters)")
+            f"(plain {d['95% CI plain']}; {d['better']}/{d['worse']}, n={d['questions']}, {d['clusters']} clusters)")
 
 
 def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFrame:
@@ -80,6 +80,10 @@ def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFr
             "chunk R@100 (overall)": f"{metrics.loc['overall', 'chunk_recall@100']:.3f}",
             "fact_stale (outdated, own found set)": ci(metrics, "outdated_version", "fact_stale"),
             "fact_found (outdated)": ci(metrics, "outdated_version", "fact_found"),
+            "secondary: fact_stale tol 0.001 / 0.005 / 0.01 (cosine only)": " / ".join(
+                f"{metrics.loc['outdated_version', c]:.3f}" if c in metrics.columns
+                and not pd.isna(metrics.loc["outdated_version", c]) else "n/a"
+                for c in ("fact_stale_t001", "fact_stale_t005", "fact_stale_t01")),
             "embedded vectors": info["embedded_units"],
             "vector index MB": info.get("vector_index_mb", ""),
             "mean search ms": info["mean_latency_ms"],
@@ -93,8 +97,8 @@ def build_table(results_dir: Path, reference: str, runs: list[str]) -> pd.DataFr
             entry.update({
                 "Δ MAIN chunk R@5 (overall)": delta(overall, "chunk_recall@5"),
                 "Δ chunk R@5 (non_outdated, guardrail)": delta(non_out, "chunk_recall@5"),
-                "Δ fact_stale (both found, tol 0.005)": delta(outdated, "fact_stale"),
-                "Δ fact_stale (both found, exact ties)": delta(outdated, "fact_stale_exact"),
+                "Δ fact_stale (by rank, both found)": delta(outdated, "fact_stale"),
+                "Δ stale doc-level (by rank)": delta(outdated, "stale"),
                 "Δ fact_found (outdated, guardrail)": delta(outdated, "fact_found"),
             })
         rows.append(entry)
@@ -157,17 +161,20 @@ def main() -> None:
     delta_cols = [c for c in table.columns if c.startswith("Δ")]
     level_cols = ["MAIN chunk R@5 (overall)", "chunk R@5 (non_outdated)", "chunk MRR (overall)",
                   "doc R@5 (overall)", "chunk R@30 (overall)", "chunk R@100 (overall)"]
-    version_cols = ["fact_stale (outdated, own found set)", "fact_found (outdated)"]
+    version_cols = ["fact_stale (outdated, own found set)", "fact_found (outdated)",
+                    "secondary: fact_stale tol 0.001 / 0.005 / 0.01 (cosine only)"]
     cost_cols = ["embedded vectors", "vector index MB", "mean search ms", "tokens unseen %", "quotes reachable"]
     descriptions = "\n".join(f"- **{r}**: {first_comment(r)}" for r in runs)
     text = (
         f"# Report: {args.name} (reference: {reference}, tune split)\n\n{descriptions}\n\n"
         "**Pre-registered main metric:** chunk_recall@5 on `overall` (answerable questions except history and "
         "real_pair). The verdict in the first Δ column is the main result. ✅ / ❌ = paired 95% interval excludes "
-        "zero; – = no detectable difference. (better/worse counts, n = paired questions.)\n\n"
+        "zero; – = no detectable difference. Verdicts use the CLUSTER interval (first bracket); the plain "
+        "per-question interval is shown for context only.\n\n"
         f"## Paired differences from {reference}\n\n{to_markdown(table, delta_cols)}\n\n"
         "fact_stale is paired only on outdated questions where BOTH runs retrieved a fact chunk; "
-        "lower is better.\n\n"
+        "lower is better. stale and fact_stale are decided by RANK for every run (Amendment 3b), so all runs "
+        "share one scale; tie-tolerance variants are a secondary detail for cosine runs only.\n\n"
         f"## Retrieval levels (95% bootstrap intervals)\n\n{to_markdown(table, level_cols)}\n\n"
         "## Version metrics (each run on its own found set; see the paired Δ above for comparisons)\n\n"
         f"{to_markdown(table, version_cols)}\n\n## Cost and diagnostics\n\n{to_markdown(table, cost_cols)}\n")
