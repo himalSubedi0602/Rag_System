@@ -31,8 +31,6 @@ data/processed/*
 !data/processed/.gitkeep
 # Chroma vector database: large binary files, rebuilt by the indexing step
 data/chroma/
-# Saved BM25 index (Phase 4), also rebuilt
-data/bm25/
 
 # ---------------------------------------------------------------
 # Model caches (only if downloads are redirected into the project)
