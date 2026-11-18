@@ -56,3 +56,9 @@ def test_section_replaced_by_scalar_is_rejected(tmp_path):
     path = write_yaml(tmp_path, "run_name: bad\nchunking: 500\n")
     with pytest.raises(ConfigError, match="must be a section"):
         load_config(path)
+
+
+def test_min_section_tokens_must_be_smaller_than_chunk_size(tmp_path):
+    path = write_yaml(tmp_path, "run_name: bad\nchunking:\n  chunk_size: 100\n  min_section_tokens: 100\n")
+    with pytest.raises(ConfigError, match="min_section_tokens"):
+        load_config(path)

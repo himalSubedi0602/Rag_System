@@ -15,9 +15,13 @@ paths:
 
 chunking:
   strategy: fixed          # fixed | heading
-  chunk_size: 500          # tokens per chunk (fixed strategy)
+  chunk_size: 500          # max tokens per chunk (heading strategy splits longer sections)
   chunk_overlap: 50        # tokens shared between neighbouring chunks
-  add_prefix: false        # prepend "doc title > section" to each chunk before embedding
+  min_section_tokens: 50   # heading strategy: smaller sections are merged into the next one
+  add_prefix: false        # prepend "doc title > section" to each chunk before embedding / BM25
+  # Tokenizer used to COUNT tokens. Kept fixed across experiments so swapping the embedding
+  # model (run 5) doesn't also change chunk boundaries. MiniLM and bge-small share this vocabulary.
+  tokenizer: sentence-transformers/all-MiniLM-L6-v2
 
 embedding:
   model: sentence-transformers/all-MiniLM-L6-v2
