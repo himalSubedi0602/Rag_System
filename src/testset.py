@@ -36,7 +36,7 @@ from src.ingest import load_documents
 
 SOURCE_PATH = "eval/questions_source.yaml"
 CHANGES_PATH = "data/synthetic/changes.yaml"
-EXPECTED_COUNTS = {"lookup": 25, "paraphrase": 15, "exact_term": 10, "multi_doc": 10,
+EXPECTED_COUNTS = {"lookup": 50, "paraphrase": 35, "exact_term": 10, "multi_doc": 18, "compound": 7,
                    "outdated_version": 39, "real_pair": 2, "history": 12, "no_answer": 10}
 TEST_SHARE = 25 / 80          # share of NEW questions that go to test (same as the original split)
 MIN_OUTDATED_TUNE = 20        # enough outdated questions to measure stale rate while tuning
@@ -53,6 +53,34 @@ def normalize(text: str) -> str:
     text = text.replace("\u2019", "'").replace("\u2018", "'").replace("\u201c", '"').replace("\u201d", '"')
     text = re.sub(r"[*_`]", "", text)          # markdown bold/italic/code marks
     return re.sub(r"\s+", " ", text).strip().lower()
+
+
+STOPWORDS = set("""a an the and or but if then than of to in on at by for from with without into onto over under
+about as is are was were be been being am do does did done have has had having i me my mine we us our you your he
+she it its they them their this that these those there here what which who whom whose when where why how can could
+may might must shall should will would not no yes any all each every some such more most much many few other own
+same so too very just also only per get got go going want need make made let lets im ive id dont isnt arent cant
+""".split())
+MAX_PARAPHRASE_OVERLAP = 0.40
+
+
+def content_words(text: str, ignore: set[str] = frozenset()) -> list[str]:
+    """Lower-case words that carry meaning: no stopwords, no words from `ignore`, crude plural stripping."""
+    out = []
+    for w in re.findall(r"[a-z0-9$£%]+", normalize(text)):
+        w = w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w
+        if w not in STOPWORDS and w not in ignore and len(w) > 1:
+            out.append(w)
+    return out
+
+
+def word_overlap(question: str, quote: str, title: str) -> float:
+    """Share of the question's content words that also appear in the gold quote. Words from the document
+    title (e.g. the organisation name, which PDF questions must include) are not counted."""
+    ignore = set(content_words(title)) | {"gitlab"}
+    q_words = content_words(question, ignore)
+    quote_words = set(content_words(quote))
+    return sum(w in quote_words for w in q_words) / len(q_words) if q_words else 0.0
 
 
 def doc_text(doc: dict[str, Any]) -> str:
@@ -134,8 +162,8 @@ def check_structure(source: dict[str, Any]) -> list[str]:
                 errors.append(f"{q['id']}: no_answer question needs 'absent' checks")
         elif not q.get("evidence") or not q.get("answer"):
             errors.append(f"{q['id']}: needs 'evidence' and 'answer'")
-        if q["type"] == "multi_doc" and len({e["doc"] for e in q.get("evidence", [])}) < 2:
-            errors.append(f"{q['id']}: multi_doc needs evidence from at least 2 documents")
+        if q["type"] in ("multi_doc", "compound") and len({e["doc"] for e in q.get("evidence", [])}) < 2:
+            errors.append(f"{q['id']}: {q['type']} needs evidence from at least 2 documents")
     return errors
 
 
@@ -173,7 +201,8 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
     for q in source["questions"]:
         qid, qtype = q["id"], q["type"]
         row = {"id": qid, "type": qtype, "split": split[qid], "question": q["question"],
-               "answer": q.get("answer", source["no_answer_text"]), "evidence": [], "notes": []}
+               "answer": q.get("answer", source["no_answer_text"]), "evidence": [], "notes": [],
+               "style": q.get("style", "direct"), "overlap": None}
         gold_docs, gold_chunks, outdated_docs, acceptable, outdated_evidence = [], [], [], [], []
 
         for ev in q.get("evidence", []):
@@ -242,6 +271,11 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
                 if same:
                     row["notes"].append(f"same answer in other version(s), acceptable: {', '.join(same)}")
 
+            overlap = word_overlap(q["question"], ev["quote"], docs_by_id[doc_id]["doc_title"])
+            row["overlap"] = overlap if row["overlap"] is None else max(row["overlap"], overlap)
+            if qtype == "paraphrase" and overlap > MAX_PARAPHRASE_OVERLAP:
+                errors.append(f"{qid}: paraphrase shares {overlap:.0%} of its content words with the quote "
+                              f"(max {MAX_PARAPHRASE_OVERLAP:.0%}); reword it")
             gold_docs.append(doc_id)
             gold_chunks += hits
             item_acceptable = ([d for d in elsewhere if d in siblings]
@@ -271,9 +305,97 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
             "acceptable_doc_ids": sorted(set(acceptable) - set(gold_docs)),
             "outdated_evidence": outdated_evidence,
             "stale_level": q.get("stale_level", "fact") if qtype in ("outdated_version", "real_pair") else None,
+            "style": row["style"],
+            "word_overlap": None if row["overlap"] is None else round(row["overlap"], 3),
+            "doc_group": doc_group(gold_docs),
         })
         review.append(row)
+    errors += quote_reuse_errors(source["questions"])
+    assign_clusters(built, fact_reuse_pairs(source["questions"]))
     return built, review, errors
+
+
+def same_chunk_pairs(built: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    """Pairs of questions whose gold quotes fall in the same baseline chunk (so their retrieval outcomes
+    are tied: whatever ranks that chunk well helps both)."""
+    by_chunk: dict[str, list[str]] = defaultdict(list)
+    for q in built:
+        for cid in set(q["gold_chunk_ids"]):
+            by_chunk[cid].append(q["id"])
+    return sorted({(a, b) for ids in by_chunk.values() for i, a in enumerate(sorted(ids)) for b in sorted(ids)[i + 1:]})
+
+
+def assign_clusters(built: list[dict[str, Any]], fact_pairs: list[tuple[str, str, str]]) -> dict[str, int]:
+    """Group linked questions (same fact, or gold in the same baseline chunk) into clusters with a small
+    union-find; writes q["cluster"] on every question. The bootstrap resamples whole clusters, so linked
+    questions can't make the intervals look tighter than the evidence justifies."""
+    parent = {q["id"]: q["id"] for q in built}
+
+    def root(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]   # path halving keeps the trees shallow
+            x = parent[x]
+        return x
+
+    chunk_pairs = same_chunk_pairs(built)
+    for a, b in [(a, b) for a, b, _ in fact_pairs] + chunk_pairs:
+        parent[root(a)] = root(b)
+    roots = sorted({root(q["id"]) for q in built})
+    number = {r: i for i, r in enumerate(roots)}
+    for q in built:
+        q["cluster"] = f"c{number[root(q['id'])]:03d}"
+    sizes = Counter(q["cluster"] for q in built)
+    return {"fact_pairs": len(fact_pairs), "same_chunk_pairs": len(chunk_pairs), "clusters": len(roots),
+            "multi_question_clusters": sum(1 for n in sizes.values() if n > 1), "largest_cluster": max(sizes.values())}
+
+
+def doc_group(gold_docs: list[str]) -> str:
+    """Coarse document group for reporting: 'pdf', or the handbook section (e.g. 'finance', 'security');
+    'mixed' if a question's gold docs come from different groups; 'none' for no_answer."""
+    groups = {"pdf" if d.startswith("pdf:") else d.split(":", 1)[1].split("/")[0] for d in gold_docs}
+    return "none" if not groups else groups.pop() if len(groups) == 1 else "mixed"
+
+
+FACT_WORD_SHARE = 0.6   # two quotes from one document sharing >= 60% of their content words = same fact
+
+
+def same_fact(doc_a: str, quote_a: str, doc_b: str, quote_b: str) -> bool:
+    """Same document AND the same stated value: one quote contains the other, or (when their numbers
+    don't differ) they share most of their content words."""
+    if doc_a != doc_b:
+        return False
+    a, b = normalize(quote_a), normalize(quote_b)
+    if a in b or b in a:
+        return True
+    nums_a, nums_b = set(re.findall(r"\d+(?:[.,]\d+)*", a)), set(re.findall(r"\d+(?:[.,]\d+)*", b))
+    if nums_a and nums_b and nums_a != nums_b:
+        return False          # different stated values (e.g. "1 year" vs "90 days") = different facts
+    wa, wb = set(content_words(a)), set(content_words(b))
+    return bool(wa and wb) and len(wa & wb) / min(len(wa), len(wb)) >= FACT_WORD_SHARE
+
+
+def fact_reuse_pairs(questions: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
+    """Every pair of DIFFERENT questions whose evidence states the same fact: (id_a, id_b, doc)."""
+    items = [(q["id"], ev["doc"], ev["quote"]) for q in questions for ev in q.get("evidence", [])]
+    pairs = set()
+    for i, (qa, da, xa) in enumerate(items):
+        for qb, db, xb in items[i + 1:]:
+            if qa != qb and same_fact(da, xa, db, xb):
+                pairs.add((min(qa, qb), max(qa, qb), da))
+    return sorted(pairs)
+
+
+def quote_reuse_errors(questions: list[dict[str, Any]]) -> list[str]:
+    """Questions sharing a fact aren't independent samples, whatever their type. A pair is an error if
+    either question is NOT in the frozen pre-expansion set (eval/replication_groups.json lists the new
+    ones); pairs among the original questions are only reported, because the test split can't change."""
+    groups_path = resolve_path("eval/replication_groups.json")
+    new_ids = set(json.loads(groups_path.read_text())["new_60"]) if groups_path.exists() else None
+    errors = []
+    for qa, qb, doc in fact_reuse_pairs(questions):
+        if new_ids is None or qa in new_ids or qb in new_ids:
+            errors.append(f"{qa} and {qb} use the same fact from {doc}")
+    return errors
 
 
 # ---------------------------------------------------------------------------
@@ -291,12 +413,13 @@ def write_questions_review(review: list[dict[str, Any]], path: Path) -> None:
              '> **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).', "",
              f"{len(review)} questions: " + ", ".join(f"{t} {n}" for t, n in Counter(r['type'] for r in review).items()),
              f"Split: tune {sum(r['split'] == 'tune' for r in review)}, test {sum(r['split'] == 'test' for r in review)}", "",
-             "| ID | Type | Split | Question | Expected answer | Gold document(s) |",
-             "|---|---|---|---|---|---|"]
+             "| ID | Type | Split | Style | Word overlap | Question | Expected answer | Gold document(s) |",
+             "|---|---|---|---|---|---|---|---|"]
     for r in review:
         docs = "<br>".join(e["doc"] for e in r["evidence"]) or "(none: should decline)"
-        lines.append(f"| {r['id']} | {r['type']} | {r['split']} | {md_cell(r['question'])} | "
-                     f"{md_cell(r['answer'])} | {md_cell(docs)} |")
+        overlap = "" if r["overlap"] is None else f"{r['overlap']:.0%}"
+        lines.append(f"| {r['id']} | {r['type']} | {r['split']} | {r['style']} | {overlap} | "
+                     f"{md_cell(r['question'])} | {md_cell(r['answer'])} | {md_cell(docs)} |")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -342,6 +465,14 @@ def main() -> None:
     write_gold_review(review, eval_dir / "gold_review.md")
 
     print(f"OK: {len(questions)} questions validated against {len(docs)} documents / {len(chunks)} chunks")
+    pairs = same_chunk_pairs(questions)
+    sizes = Counter(q["cluster"] for q in questions)
+    tune_clusters = {q["cluster"] for q in questions if q["split"] == "tune"
+                     and q["question_type"] not in ("no_answer", "history", "real_pair")}
+    print(f"Links: {len(fact_reuse_pairs(source['questions']))} same-fact pairs, {len(pairs)} same-chunk pairs -> "
+          f"{len(sizes)} clusters ({sum(n > 1 for n in sizes.values())} with >1 question, largest {max(sizes.values())}); "
+          f"tune `overall`: {len(tune_clusters)} clusters")
+    print("Same-chunk pairs:", ", ".join(f"{a}+{b}" for a, b in pairs) or "none")
     print("By type:  ", dict(Counter(q["question_type"] for q in questions)))
     print("By split: ", dict(Counter(q["split"] for q in questions)))
     for split_name in ("tune", "test"):
