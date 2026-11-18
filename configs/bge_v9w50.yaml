@@ -1,0 +1,7 @@
+# Run 9: date-aware rerank, w = 0.5. Base = bge (Amendment 4).
+run_name: bge_v9w50
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  date_aware_rerank: true
+  date_weight: 0.5

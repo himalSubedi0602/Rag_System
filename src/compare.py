@@ -27,6 +27,7 @@ GROUPS = {
     "overall": lambda t: ~t.isin(SANITY_TYPES),
     "non_outdated": lambda t: ~t.isin(SANITY_TYPES | {"outdated_version"}),
     "outdated_version": lambda t: t == "outdated_version",
+    "history": lambda t: t == "history",   # Amendment 4 guardrail for version strategies
 }
 
 
@@ -86,6 +87,8 @@ def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame, group: str = "overall") -> pd
                      "better": int((sign * diff > 0).sum()), "worse": int((sign * diff < 0).sum()),
                      "same": int((diff == 0).sum()), "mean_diff (B-A)": round(float(diff.mean()), 3),
                      "95% CI of diff": f"[{lo:.3f}, {hi:.3f}]"})
+    if not rows:                     # no question of this group in both runs (e.g. tune-only ids on test)
+        return pd.DataFrame(index=pd.Index([], name="metric"))
     return pd.DataFrame(rows).set_index("metric")
 
 

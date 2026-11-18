@@ -1,0 +1,8 @@
+# Run 8: exclude superseded versions before search. Base = hybrid (Amendment 4).
+run_name: hybrid_v8
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  mode: hybrid
+  rrf_k: 60
+  version_filter: exclude_superseded

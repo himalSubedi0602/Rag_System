@@ -7,12 +7,18 @@ Pipeline, each step switched on by one config setting:
   3. cap           at most `retrieval.max_per_version_group` chunks per version group (0 = off)
   two_stage        alternative to 1-2: rank documents by their best chunk, keep the top N documents,
                    then rerank ALL chunks of those documents with the cross-encoder
-Version filters / date-aware rerank / version swap (runs 8, 8b, 9, 9b) come in the next branch.
+Version handling (Amendment 4, runs 8 / 8b / 9 / 9b):
+  version_filter     exclude_superseded | exclude_legacy: those chunks are removed BEFORE search
+                     (vector search, BM25 and everything after them)
+  date_aware_rerank  score' = (1 - w) * rel + w * recency on the final candidate list (scale-free)
+  version_swap       each superseded chunk is replaced by the most similar chunk of the current version
 """
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
+from datetime import date
 from functools import lru_cache
 from typing import Any
 
@@ -31,14 +37,17 @@ def scores_are_similarities(cfg: dict[str, Any]) -> bool:
     return r["mode"] != "hybrid" and not cfg["reranker"]["enabled"] and not r["two_stage"]
 
 
+VERSION_FILTERS = {"none": None, "exclude_superseded": "superseded", "exclude_legacy": "legacy"}
+
+
 def unsupported_settings(cfg: dict[str, Any]) -> list[str]:
-    """Config options that are not implemented yet (so they are never silently ignored)."""
+    """Config values that are not implemented (so they are never silently ignored)."""
     r = cfg["retrieval"]
     problems = []
-    if r["version_filter"] != "none":
+    if r["version_filter"] not in VERSION_FILTERS:
         problems.append(f"retrieval.version_filter={r['version_filter']}")
-    if r["date_aware_rerank"]:
-        problems.append("retrieval.date_aware_rerank=true")
+    if r["two_stage"] and (r["version_filter"] != "none" or r["date_aware_rerank"] or r["version_swap"]):
+        problems.append("two_stage combined with version handling")
     return problems
 
 
@@ -59,16 +68,31 @@ def reciprocal_rank_fusion(rankings: list[list[tuple[str, float]]], k: int) -> l
     return rank_results(list(fused.items()))
 
 
+def allowed_chunk_ids(bundle: IndexBundle, excluded_status: str) -> set[str]:
+    """Chunk ids whose version_status is not `excluded_status`, computed once per bundle and status."""
+    cache = getattr(bundle, "_allowed", None)
+    if cache is None:
+        cache = bundle._allowed = {}
+    if excluded_status not in cache:
+        cache[excluded_status] = {cid for cid, c in bundle.chunks_by_id.items()
+                                  if c["version_status"] != excluded_status}
+    return cache[excluded_status]
+
+
 def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: int) -> list[tuple[str, float]]:
-    """Top `depth` candidates from vector search (or small-to-big), optionally fused with BM25."""
+    """Top `depth` candidates from vector search (or small-to-big), optionally fused with BM25.
+    With a version filter, excluded chunks are never searched (run 8 / 8b)."""
     r = cfg["retrieval"]
+    excluded = VERSION_FILTERS[r["version_filter"]]
+    where = {"version_status": {"$ne": excluded}} if excluded else None
     if r["small_to_big"]:
-        dense = small_to_big_search(bundle.piece_collection, bundle.embed_fn, question, depth)
+        dense = small_to_big_search(bundle.piece_collection, bundle.embed_fn, question, depth, where=where)
     else:
-        dense = vector_search(bundle.collection, bundle.embed_fn, question, depth)
+        dense = vector_search(bundle.collection, bundle.embed_fn, question, depth, where=where)
     if r["mode"] != "hybrid":
         return dense
-    keyword = bundle.bm25.search(question, depth)
+    allowed = allowed_chunk_ids(bundle, excluded) if excluded else None
+    keyword = bundle.bm25.search(question, depth, allowed_ids=allowed)
     return reciprocal_rank_fusion([dense, keyword], r["rrf_k"])[:depth]
 
 
@@ -118,6 +142,69 @@ def cap_per_version_group(ranked: list[tuple[str, float]], chunks_by_id: dict[st
             kept.append((cid, score))
             seen[group] += 1
     return kept
+
+
+# ---------------------------------------------------------------------------
+# Version handling: date-aware rerank (run 9) and version swap (run 9b)
+# ---------------------------------------------------------------------------
+
+def recency_scores(bundle: IndexBundle) -> dict[str, float]:
+    """chunk_id -> (updated_date - oldest) / (newest - oldest) over the whole corpus, in [0, 1]."""
+    if getattr(bundle, "_recency", None) is None:
+        days = {cid: date.fromisoformat(str(c["updated_date"])[:10]).toordinal()
+                for cid, c in bundle.chunks_by_id.items()}
+        lo, hi = min(days.values()), max(days.values())
+        bundle._recency = {cid: (d - lo) / (hi - lo) for cid, d in days.items()}
+    return bundle._recency
+
+
+def date_aware_rerank(ranked: list[tuple[str, float]], bundle: IndexBundle, w: float) -> list[tuple[str, float]]:
+    """Blend rank-based relevance with recency: score' = (1 - w) * rel + w * recency, rel = 1 - (rank-1)/N.
+
+    Uses ranks, not raw scores, so it behaves the same after vector search, RRF or the cross-encoder.
+    """
+    n = len(ranked)
+    if n == 0:
+        return []
+    recency = recency_scores(bundle)
+    blended = [(cid, (1 - w) * (1 - i / n) + w * recency[cid]) for i, (cid, _) in enumerate(ranked)]
+    return rank_results(blended)
+
+
+def word_set(text: str) -> set[str]:
+    return set(re.findall(r"\w+", text.lower()))
+
+
+def current_doc_of_group(bundle: IndexBundle) -> dict[str, str]:
+    """version_group -> doc_id of its current version (groups with no current version are absent)."""
+    if getattr(bundle, "_current_doc", None) is None:
+        bundle._current_doc = {c["version_group"]: c["doc_id"] for c in bundle.chunks_by_id.values()
+                               if c["is_current"]}
+    return bundle._current_doc
+
+
+def version_swap(ranked: list[tuple[str, float]], bundle: IndexBundle) -> list[tuple[str, float]]:
+    """Replace each superseded chunk by the current version's chunk with the highest word overlap
+    (Jaccard over word sets), keeping its position. If that chunk is already higher in the list, the swapped
+    copy is dropped; if it is lower, the lower copy is dropped (the higher position is kept)."""
+    out, seen = [], set()
+    for cid, score in ranked:
+        chunk = bundle.chunks_by_id[cid]
+        target = cid
+        current_doc = current_doc_of_group(bundle).get(chunk["version_group"])
+        if chunk["version_status"] == "superseded" and current_doc:
+            words = word_set(chunk["text"])
+
+            def similarity(other_id: str) -> tuple[float, int]:   # Jaccard; ties -> earlier chunk
+                other = bundle.chunks_by_id[other_id]
+                o_words = word_set(other["text"])
+                return len(words & o_words) / max(1, len(words | o_words)), -other["chunk_index"]
+
+            target = max(chunks_by_doc(bundle)[current_doc], key=similarity)
+        if target not in seen:
+            out.append((target, score))
+            seen.add(target)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -172,4 +259,9 @@ def retrieve(question: str, bundle: IndexBundle, cfg: dict[str, Any]) -> list[tu
         ranked = rerank(question, ranked, bundle, cfg, rr["candidates"])
     if r["max_per_version_group"] > 0:
         ranked = cap_per_version_group(ranked, bundle.chunks_by_id, r["max_per_version_group"])
-    return ranked[:k]
+    ranked = ranked[:k]
+    if r["date_aware_rerank"]:
+        ranked = date_aware_rerank(ranked, bundle, r["date_weight"])
+    if r["version_swap"]:
+        ranked = version_swap(ranked, bundle)
+    return ranked

@@ -1,0 +1,10 @@
+# Amendment 4b: bge + BM25 hybrid (RRF k = 60) + cross-encoder reranker over the top 30 fused candidates.
+run_name: hybrid_rerank30
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  mode: hybrid
+  rrf_k: 60
+reranker:
+  enabled: true
+  candidates: 30

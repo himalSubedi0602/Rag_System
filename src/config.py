@@ -16,7 +16,7 @@ DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "default.yaml"
 ALLOWED_VALUES: dict[tuple[str, str], set[str]] = {
     ("chunking", "strategy"): {"fixed", "heading"},
     ("retrieval", "mode"): {"vector", "hybrid"},
-    ("retrieval", "version_filter"): {"none", "current_only"},
+    ("retrieval", "version_filter"): {"none", "exclude_superseded", "exclude_legacy"},
     ("eval", "split"): {"tune", "test"},
 }
 

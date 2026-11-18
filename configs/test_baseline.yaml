@@ -1,0 +1,8 @@
+# FINAL TEST RUN (once): the baseline on the held-out test split. Reference point only; nothing is tuned on it.
+run_name: test_baseline
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+retrieval:
+  mode: vector
+eval:
+  split: test

@@ -443,12 +443,12 @@ removes truncation (measurement validity), not because of a recall gain - which 
   75 independent clusters, so adding questions bought much less precision than their count suggests.
 
 ### End-of-Phase-7 checklist
-- [ ] Decide whether to add **test-split questions with unique gold chunks** before the single test run
-      (the test split has never been run; adding questions now would not leak results).
-- [ ] Comparison table and charts across all Phase 7 runs.
-- [ ] Choose the single best tune configuration (primary metrics + guardrail; ties -> simpler).
-- [ ] Run the baseline and the chosen configuration once each on test with `--final`.
-- [ ] Tag "retrieval done".
+- [x] Decide whether to add **test-split questions with unique gold chunks** before the single test run
+      (the test split has never been run; adding questions now would not leak results). -> Not added (freeze).
+- [x] Comparison table and charts across all Phase 7 runs (eval/results/charts/, reports phase7c_*).
+- [x] Choose the single best tune configuration (primary metrics + guardrail; ties -> simpler). -> hybrid_v9w10.
+- [x] Run the baseline and the chosen configuration once each on test with `--final` (2026-11-18).
+- [ ] Tag "retrieval done" (after merge).
 
 ## Phase 7b step 1: retests on the small2big base (2026-11-18; tune; cluster intervals, 75 clusters)
 
@@ -649,3 +649,141 @@ smaller goes into the list below.
    this; two-stage and bge_prefix were not carried forward partly for this reason.
 8. **7a-only result folders** (chunk250, chunk1000, heading, prefix) keep the old tolerance-based stale
    columns. No 7b comparison uses them.
+
+## Phase 7c: final retrieval configuration and version handling (branch phase-7-versions)
+
+### Amendment 4 (2026-11-18, written BEFORE any run on this branch, and before the rerank 100-vs-30 paired test)
+
+**a) Reranker depth.** Paired test (cluster bootstrap, `overall`, chunk R@5) of rerank100 minus rerank30, from
+the existing step-2 runs. If the paired 95% interval of the difference includes zero, use **top 30** (simpler,
+2.4x cheaper). Otherwise use top 100.
+
+**b) Combined run (pre-registered):** hybrid (RRF k = 60) + cross-encoder reranker, with the candidate count
+from (a). The reranker re-scores the top fused candidates. Prediction: it beats hybrid alone on chunk R@5
+(overall). It is compared with hybrid alone and with the reranker alone (same candidate count), with the usual
+guardrails (non_outdated chunk R@5, fact_found).
+
+**c) Final retrieval configuration.** The combination wins only if its paired interval against **hybrid alone**
+excludes zero (above). Otherwise **hybrid alone** wins, because it is simpler and ~15x faster. The winner is
+the final retrieval configuration. Runs 8, 8b, 9 and 9b run on it (primary) and on bge (secondary).
+
+**d) History questions** are reported explicitly under run 8, as the cost of filtering (expected to drop to 0),
+and their pass rate is a guardrail for every version strategy (see the selection rule below).
+
+**Version runs, defined now (one change each, on top of the base):**
+- **8 exclude superseded:** chunks with `version_status = superseded` are removed before search, in vector
+  search, BM25 and anything after them.
+- **8b exclude legacy:** the same, for `version_status = legacy`.
+- **9 date-aware rerank:** applied to the final candidate list (N = 30, after any reranker). Scale-free, so it
+  works the same for cosine, RRF and logit scores (Amendment 3b):
+  `score' = (1 - w) * rel + w * recency`, with `rel = 1 - (rank - 1) / N` and
+  `recency = (updated_date - oldest) / (newest - oldest)` over the whole corpus (2017-03-08 to 2026-11-17).
+  **w in {0.1, 0.25, 0.5}** (3 values, the pre-registered maximum). As a guide, an old/current pair ~4 years
+  apart gains about 1, 3 or 12 ranks. Every old page is penalised, current ones included, and the non_outdated
+  guardrail measures that cost. A single w is chosen on tune by the improvement rule, preferring the smallest
+  w among those whose intervals overlap.
+- **9b version swap:** each retrieved chunk from a superseded document is replaced by the chunk of the
+  current document in the same version_group with the highest word overlap (Jaccard over word sets). If that
+  chunk is already in the list, the swapped duplicate is dropped (the higher position is kept). Legacy chunks
+  have no current version and are left alone.
+
+**Predictions:**
+- **8 and 9b:** fact_stale falls to ~0 on both bases, because no superseded chunk is left to outrank the current one.
+- **8:** fact_found stays the same or rises. History questions fall to ~0 under 8 and 9b (their gold is superseded).
+- **8b:** no detectable change.
+- **9:** fact_stale falls as w grows, and at w = 0.5 non_outdated chunk R@5 may fall.
+
+**Selecting the version strategy for the final configuration:**
+- **Requirements:** it must significantly lower fact_stale against the base and must not violate a
+  guardrail. That means no significant drop in overall chunk R@5, non_outdated chunk R@5, fact_found, or the
+  **history pass rate**.
+- **History pass rate:** chunk R@5 on the history questions (10 on tune), paired against the base with the
+  cluster bootstrap. A strategy whose interval for this is entirely below zero fails the guardrail.
+- **Expected consequence, stated in advance:** runs 8 and 9b remove or swap the superseded gold of every history
+  question, so they are expected to fail this guardrail if the base passes a meaningful share of history
+  questions. In that case only run 9, or no version handling, can be selected.
+- **If several pass:** use the simplest whose interval overlaps the best: 8, then 9b, then 9.
+- **If none pass:** the final configuration has no version handling.
+
+The test split is still untouched. Baseline and final configuration are run once each with `--final` at the end.
+
+### Phase 7c results (tune; cluster intervals; written before the test split is run)
+
+**a) Reranker depth:** rerank100 - rerank30 = +0.028 [0.000, 0.068] (5 better / 1 worse). The unrounded lower
+bound is exactly 0.0, so the interval includes zero and **top 30** is used. That is on the boundary.
+
+**b) hybrid + reranker top 30** (chunk R@5 0.710, MRR 0.600, R@100 0.944, 243 ms):
+
+| vs | Δ chunk R@5 (main) | Δ MRR | Δ non_outdated | Δ fact_found |
+|---|---|---|---|---|
+| hybrid alone | +0.028 [-0.033, 0.085] – (12/7) | **+0.075 ✅** | +0.035 – | 0 |
+| reranker alone (30) | **+0.040 [0.013, 0.075] ✅** (6/0) | +0.020 ✅ | +0.030 ✅ | **+0.24 ✅** |
+| bge | **+0.163 ✅** | **+0.201 ✅** | **+0.144 ✅** | **+0.24 ✅** |
+
+**The prediction failed** on the main metric: the combination doesn't beat hybrid alone, although it
+puts the answer higher on average (MRR ✅).
+
+**c) Final retrieval configuration = hybrid (bge + BM25, RRF k = 60).** The combination doesn't beat hybrid
+alone, so the simpler and ~13x faster run wins (18 vs 243 ms). The MRR gain is noted for Phase 8: if answers
+suffer from the answer chunk sitting at rank 3-5, the reranker is the first thing to revisit (Limitation 9).
+
+**Version runs.** Pass = satisfies every requirement of the Amendment 4 rule.
+
+| run (base hybrid) | fact_stale | Δ fact_stale | Δ overall R@5 | Δ non_outdated | Δ fact_found | history R@5 (base 0.70) | pass? |
+|---|---|---|---|---|---|---|---|
+| 8 exclude superseded | 0.00 | **-0.74 ✅** (17/0) | +0.008 – | 0.000 – | 0 | **0.00, -0.70 ❌** (0/7) | no (history) |
+| 8b exclude legacy | 0.78 | +0.04 – | 0 | 0 | 0 | 0.70 | no (fact_stale not lowered) |
+| **9 date w=0.1** | **0.22** | **-0.52 ✅** (12/0) | +0.008 [0.000, 0.027] – | 0 | 0 | **0.70, 0 –** | **yes** |
+| 9 date w=0.25 | 0.00 | **-0.74 ✅** (17/0) | +0.016 – | +0.010 – | 0 | 0.50, -0.20 [-0.5, 0.0] – | yes |
+| 9 date w=0.5 | 0.00 | **-0.74 ✅** | +0.012 – | -0.005 – | 0 | **0.00, -0.70 ❌** | no (history) |
+| 9b version swap | 0.00 | **-0.74 ✅** | **+0.032 ✅** | +0.020 – | 0 | **0.00, -0.70 ❌** | no (history) |
+
+The secondary base (bge) gives the same pattern: 8, 9b and w=0.5 fail on history (−0.60 ❌), 8b has no
+effect, and w=0.1 and w=0.25 pass (w=0.1: fact_stale −0.59 ✅, history 0.60 → 0.60). On bge, w=0.1's overall
+interval is [−0.014, 0.000]: it includes zero, so it doesn't fail the guardrail.
+
+**Applying the selection rule:**
+- Only run 9 passes. Among its w values, 0.1 and 0.25 pass, and their fact_stale intervals overlap
+  ([-0.73, -0.29] vs [-0.91, -0.55]), so the smallest wins: **w = 0.1**.
+- **Final configuration for the test run: `hybrid_v9w10`** (bge + BM25 RRF k = 60 + date-aware rerank w = 0.1).
+  Tune: chunk R@5 0.691, fact_stale 0.22 (base 0.74), history 0.70.
+- **What the predictions got right:** 8 and 9b gave fact_stale = 0 and history ~0. 8b had no effect. Run 9
+  lowered fact_stale as w grew, and its cost showed up on history (w=0.25 -0.2, w=0.5 -0.7) rather than on
+  non_outdated.
+- **Interpretation:** filtering or swapping trades the history questions for perfect freshness. A light recency
+  prior removes most of the staleness (0.74 -> 0.22) and keeps the old documents reachable when a question asks
+  about them.
+
+**Unique-gold-chunk test questions (checklist item): not added.** The methodology is frozen (see above), and
+adding test questions now would be a test-set change after the configuration was chosen. Recorded as
+Limitation 10.
+
+Additions to **Limitations**:
+9. **Reranker on top of hybrid** improves MRR (+0.075 ✅) but not recall@5, so it isn't in the final
+   configuration. Revisit in Phase 8 if answer quality depends on rank 1 vs rank 5.
+10. **The test split was not extended with unique-gold-chunk questions** (methodology freeze). Some test
+    questions share gold chunks, which the cluster bootstrap accounts for.
+11. **The run-9 w was chosen on 10 history questions and 23 staleness pairs.** w = 0.1 is the conservative end
+    of the grid, and its history interval (0 change) is wide.
+
+### Final test run (2026-11-18; run ONCE each with --final; 39 test questions, 33 in `overall`, 21 clusters)
+
+| metric (test) | baseline | final (hybrid_v9w10) | paired Δ (cluster 95%) |
+|---|---|---|---|
+| **chunk R@5, overall (main)** | 0.364 | **0.697** | **+0.333 [0.16, 0.50] ✅** (11 better / 0 worse) |
+| chunk MRR, overall | 0.288 | 0.549 | **+0.261 [0.13, 0.41] ✅** |
+| doc R@5, overall | | | **+0.121 [0.03, 0.23] ✅** |
+| chunk R@100, overall | | | **+0.182 [0.06, 0.31] ✅** |
+| chunk R@5, non_outdated (guardrail) | | | **+0.263 [0.11, 0.44] ✅** |
+| fact_stale (by rank) | 1.00 | **0.14** | **-1.00 ✅** (6/0, n = 6 both found) |
+| doc stale | | | **-0.69 [-0.94, -0.33] ✅** (9/0, n = 13) |
+| fact_found | 0.43 | **1.00** | **+0.57 [0.18, 0.87] ✅** |
+| history chunk R@5 (n = 2) | 0.50 | 0.50 | 0 |
+
+- **The tune result holds on held-out questions.** The test gain (+0.33) is larger than on tune (+0.19), but
+  the test interval is wide (n = 33 in 21 clusters), so both are consistent with a gain of roughly +0.2 to +0.3.
+- **Version handling works out of sample:** the baseline put the old fact first in every found pair, and the
+  final configuration finds the fact in all 14 outdated questions with the old one first in 2 of 14
+  (0.14). History questions are unaffected (n = 2: too small to read).
+- **Nothing was tuned on these numbers.** The test split is now spent, and Phase 8 tunes on tune only.
+- Report: eval/results/report_phase7_final_test.md.
