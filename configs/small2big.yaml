@@ -1,0 +1,7 @@
+# Run 2b: small-to-big. Search 250-token pieces of each 500-token chunk, return the parent chunk.
+# Chunks (and what the LLM would receive) are identical to the baseline; only the search unit changes.
+run_name: small2big
+retrieval:
+  small_to_big: true
+  piece_size: 250
+  piece_overlap: 25

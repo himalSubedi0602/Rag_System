@@ -1,0 +1,5 @@
+# Run 4: title/section prefix. "Doc title > Section" is prepended to each chunk before embedding.
+# Chunks are identical to the baseline; only the embedded text changes.
+run_name: prefix
+chunking:
+  add_prefix: true
