@@ -649,3 +649,60 @@ smaller goes into the list below.
    this; two-stage and bge_prefix were not carried forward partly for this reason.
 8. **7a-only result folders** (chunk250, chunk1000, heading, prefix) keep the old tolerance-based stale
    columns. No 7b comparison uses them.
+
+## Phase 7c: final retrieval configuration and version handling (branch phase-7-versions)
+
+### Amendment 4 (2026-11-18, written BEFORE any run on this branch, and before the rerank 100-vs-30 paired test)
+
+**a) Reranker depth.** Paired test (cluster bootstrap, `overall`, chunk R@5) of rerank100 minus rerank30, from
+the existing step-2 runs. If the paired 95% interval of the difference includes zero, use **top 30** (simpler,
+2.4x cheaper). Otherwise use top 100.
+
+**b) Combined run (pre-registered):** hybrid (RRF k = 60) + cross-encoder reranker, with the candidate count
+from (a). The reranker re-scores the top fused candidates. Prediction: it beats hybrid alone on chunk R@5
+(overall). It is compared with hybrid alone and with the reranker alone (same candidate count), with the usual
+guardrails (non_outdated chunk R@5, fact_found).
+
+**c) Final retrieval configuration.** The combination wins only if its paired interval against **hybrid alone**
+excludes zero (above). Otherwise **hybrid alone** wins, because it is simpler and ~15x faster. The winner is
+the final retrieval configuration. Runs 8, 8b, 9 and 9b run on it (primary) and on bge (secondary).
+
+**d) History questions** are reported explicitly under run 8, as the cost of filtering (expected to drop to 0),
+and their pass rate is a guardrail for every version strategy (see the selection rule below).
+
+**Version runs, defined now (one change each, on top of the base):**
+- **8 exclude superseded:** chunks with `version_status = superseded` are removed before search, in vector
+  search, BM25 and anything after them.
+- **8b exclude legacy:** the same, for `version_status = legacy`.
+- **9 date-aware rerank:** applied to the final candidate list (N = 30, after any reranker). Scale-free, so it
+  works the same for cosine, RRF and logit scores (Amendment 3b):
+  `score' = (1 - w) * rel + w * recency`, with `rel = 1 - (rank - 1) / N` and
+  `recency = (updated_date - oldest) / (newest - oldest)` over the whole corpus (2017-03-08 to 2026-11-17).
+  **w in {0.1, 0.25, 0.5}** (3 values, the pre-registered maximum). As a guide, an old/current pair ~4 years
+  apart gains about 1, 3 or 12 ranks. Every old page is penalised, current ones included, and the non_outdated
+  guardrail measures that cost. A single w is chosen on tune by the improvement rule, preferring the smallest
+  w among those whose intervals overlap.
+- **9b version swap:** each retrieved chunk from a superseded document is replaced by the chunk of the
+  current document in the same version_group with the highest word overlap (Jaccard over word sets). If that
+  chunk is already in the list, the swapped duplicate is dropped (the higher position is kept). Legacy chunks
+  have no current version and are left alone.
+
+**Predictions:**
+- **8 and 9b:** fact_stale falls to ~0 on both bases, because no superseded chunk is left to outrank the current one.
+- **8:** fact_found stays the same or rises. History questions fall to ~0 under 8 and 9b (their gold is superseded).
+- **8b:** no detectable change.
+- **9:** fact_stale falls as w grows, and at w = 0.5 non_outdated chunk R@5 may fall.
+
+**Selecting the version strategy for the final configuration:**
+- **Requirements:** it must significantly lower fact_stale against the base and must not violate a
+  guardrail. That means no significant drop in overall chunk R@5, non_outdated chunk R@5, fact_found, or the
+  **history pass rate**.
+- **History pass rate:** chunk R@5 on the history questions (10 on tune), paired against the base with the
+  cluster bootstrap. A strategy whose interval for this is entirely below zero fails the guardrail.
+- **Expected consequence, stated in advance:** runs 8 and 9b remove or swap the superseded gold of every history
+  question, so they are expected to fail this guardrail if the base passes a meaningful share of history
+  questions. In that case only run 9, or no version handling, can be selected.
+- **If several pass:** use the simplest whose interval overlaps the best: 8, then 9b, then 9.
+- **If none pass:** the final configuration has no version handling.
+
+The test split is still untouched. Baseline and final configuration are run once each with `--final` at the end.
