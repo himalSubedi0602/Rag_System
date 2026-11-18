@@ -4,6 +4,7 @@
 #
 # evidence: [{doc, quote}]  quote = exact supporting text (matching ignores case, whitespace,
 #                           curly vs straight quotes and markdown * _ ` characters)
+# split:    tune/test; FROZEN once assigned. New questions without one get a stratified split.
 # absent:   [{pattern, scope}]  no_answer only: regex that must match NOTHING in docs whose
 #                           doc_id starts with scope ("" = whole corpus)
 
@@ -11,123 +12,143 @@ no_answer_text: "I couldn't find this in the documents."
 
 questions:
 
-# ---------------------------------------------------------------- lookup (20)
+# ---------------------------------------------------------------- lookup (25: lk-21..25 below, in the outdated section)
 - id: lk-01
   type: lookup
+  split: tune
   question: "What is GitLab's daily reimbursement limit for internet access while travelling?"
   answer: "Up to $50 USD (or local equivalent) per day."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Internet while traveling is reimbursable for up to $50 USD (or local equivalent currency) per day."}
 - id: lk-02
   type: lookup
+  split: tune
   question: "What is the monthly limit for reimbursing a co-working space at GitLab?"
   answer: "$700 per month (pre-approval is needed)."
   evidence:
     - {doc: "hb:finance/expenses", quote: "$700.00 Limit per month."}
 - id: lk-03
   type: lookup
+  split: test
   question: "Within how many working days does GitLab's Accounts Payable team process expense reports that need AP Admin review?"
   answer: "Within 7 working days from the date submitted."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Review and process all expense reports that require AP Admin review, within 7 working days from the date submitted."}
 - id: lk-04
   type: lookup
+  split: test
   question: "How many one-off co-working days per month can a GitLab team member expense without Manager or Finance approval?"
   answer: "Up to 5 one-off days in a calendar month."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Up to 5 One-off Days in a calendar month related to co-working space do not require Manager or Finance approval."}
 - id: lk-05
   type: lookup
+  split: test
   question: "How far in advance should GitLab team members book domestic flights?"
   answer: "At least 14 days in advance."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Domestic: At least 14 days in advance"}
 - id: lk-06
   type: lookup
+  split: tune
   question: "How long does GitLab retain security incident communications sent to customers?"
   answer: "3 years."
   evidence:
     - {doc: "hb:security/policies_and_standards/records-retention-deletion", quote: "Security incident communication to customers | 3 years"}
 - id: lk-07
   type: lookup
+  split: tune
   question: "How often are user access reviews performed for SOX in-scope applications at GitLab?"
   answer: "Quarterly (entitlement reviews of all users)."
   evidence:
     - {doc: "hb:security/security-assurance/security-compliance/access-reviews", quote: "SOX In-Scope Applications | Quarterly"}
 - id: lk-08
   type: lookup
+  split: test
   question: "How long does GitLab retain its annual risk assessment report?"
   answer: "2 years."
   evidence:
     - {doc: "hb:security/policies_and_standards/records-retention-deletion", quote: "Annual risk assessment report | 2 years"}
 - id: lk-09
   type: lookup
+  split: tune
   question: "What are the eligibility requirements for FMLA leave at GitLab in the US?"
   answer: "1 year of service and 1,250 hours worked in the year immediately before the leave starts."
   evidence:
     - {doc: "hb:people-policies/leave-of-absence/us", quote: "1 year of service, AND1250hrs worked in the year immediately priorto the start of leave"}
 - id: lk-10
   type: lookup
+  split: test
   question: "What is GitLab's standard discretionary bonus amount?"
   answer: "$1,000 (at the current exchange rate)."
   evidence:
     - {doc: "hb:total-rewards/incentives", quote: "standard discretionary bonus amount ($1,000 at the current exchange rate)"}
 - id: lk-11
   type: lookup
+  split: tune
   question: "Over what reference period are average weekly working hours calculated for the 48-hour limit in GitLab's people policies?"
   answer: "Usually a 17-week reference period."
   evidence:
     - {doc: "hb:people-policies", quote: "Average working hours are calculated over a 'reference' period, which is usually 17 weeks."}
 - id: lk-12
   type: lookup
+  split: tune
   question: "At Lancaster City Council, how many days of sickness absence can an employee self-certify?"
   answer: "The first 7 calendar days (pro-rated for part-time employees); longer absences need a fit note."
   evidence:
     - {doc: "pdf:lancaster-sickness-absence", quote: "The first 7 calendar days (pro-rated for part time employees) of sickness absence can be self-certified"}
 - id: lk-13
   type: lookup
+  split: tune
   question: "How many days of annual leave do Grade 1 to 9 staff get at Middlesex University?"
   answer: "30 days per annum."
   evidence:
     - {doc: "pdf:middlesex-annual-leave", quote: "Grades 1 to 9 30 days per annum"}
 - id: lk-14
   type: lookup
+  split: tune
   question: "What mileage rate does Brunel University London pay for the first 10,000 business miles in a tax year?"
   answer: "45p per mile."
   evidence:
     - {doc: "pdf:brunel-travel-expenses", quote: "45p per mile For the first 10,000 miles of the tax year"}
 - id: lk-15
   type: lookup
+  split: tune
   question: "Within what time must Malvern Town Council report a personal data breach to the Information Commissioner?"
   answer: "Within 72 hours of discovery."
   evidence:
     - {doc: "pdf:malvern-data-protection-staff", quote: "Information Commissioner within 72 hours of discovery."}
 - id: lk-16
   type: lookup
+  split: tune
   question: "At the University of Roehampton, how quickly should receipt of a whistleblowing concern be acknowledged?"
   answer: "Normally within 3 days of receipt."
   evidence:
     - {doc: "pdf:roehampton-whistleblowing", quote: "acknowledge receipt of the concern, normally within 3 days of receipt."}
 - id: lk-17
   type: lookup
+  split: tune
   question: "How many days per week can Heriot-Watt University staff seek to work remotely?"
   answer: "Up to two days per week (pro-rata for part-time staff), by agreement with their manager."
   evidence:
     - {doc: "pdf:heriot-watt-hybrid-working", quote: "may seek agreement with their manager to work remotely for up to two days per week"}
 - id: lk-18
   type: lookup
+  split: tune
   question: "Within what period are University of Waikato staff expected to take their annual leave?"
   answer: "Within 12 months of the date on which it becomes due."
   evidence:
     - {doc: "pdf:waikato-annual-leave", quote: "Staff are expected to take all annual leave within 12 months of the date on which the"}
 - id: lk-19
   type: lookup
+  split: tune
   question: "What is GitLab's daily limit for fuel when using a rental car on business travel?"
   answer: "$300 per day."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Fuel at $300 limit per day."}
 - id: lk-20
   type: lookup
+  split: test
   question: "What are GitLab's limits for taxis and ride-shares on business trips?"
   answer: "$300 per round trip and $150 for a single trip."
   evidence:
@@ -136,90 +157,105 @@ questions:
 # ---------------------------------------------------------------- paraphrase (15)
 - id: pp-01
   type: paraphrase
+  split: tune
   question: "How far from my home can a co-working space be for GitLab to pay for it?"
   answer: "Within a commutable distance (about 50 km) of your primary residence, except one-off day passes while travelling."
   evidence:
     - {doc: "hb:finance/expenses", quote: "located within a commutable distance (+-50km) of the Team Member's primary residence"}
 - id: pp-02
   type: paraphrase
+  split: tune
   question: "If GitLab pays for my co-working desk for a whole month, can I still claim my home internet?"
   answer: "No; with a full month of co-working, home internet cannot be expensed (a few co-working days still allows it)."
   evidence:
     - {doc: "hb:finance/expenses", quote: "if you expense a co-working space for a full month then internet for home cannot be expensed."}
 - id: pp-03
   type: paraphrase
+  split: tune
   question: "As a GitLab Support engineer, when should I rethink the dates I want to take off?"
   answer: "If the regional team would be short by 20% or more of its people on any of those days."
   evidence:
     - {doc: "hb:support/support-time-off", quote: "the regional team would be short by 20% or more of its people"}
 - id: pp-04
   type: paraphrase
+  split: tune
   question: "If I signed away the 48-hour weekly limit at GitLab, how much warning must I give to take that back?"
   answer: "Three months' notice."
   evidence:
     - {doc: "hb:people-policies", quote: "The notice period you are required to give is three months."}
 - id: pp-05
   type: paraphrase
+  split: tune
   question: "Do people joining GitLab have to complete a security course when they start?"
   answer: "Yes, New Hire Security Training is required during onboarding for all team members and contractors."
   evidence:
     - {doc: "hb:security/security-assurance/governance/sec-training", quote: "New Hire Security Training is required to be completed by all GitLab Team Members and contractors/TSPs during their onboarding at GitLab."}
 - id: pp-06
   type: paraphrase
+  split: tune
   question: "What is the best thing to do when a fake scam email from GitLab's security team lands in my inbox?"
   answer: "Report it (ideal); deleting it is acceptable."
   evidence:
     - {doc: "hb:security/security-assurance/governance/phishing", quote: "The goal is that TMs either report the phishing attempt (ideal behavior) or delete the email (acceptable behavior)."}
 - id: pp-07
   type: paraphrase
+  split: test
   question: "How does GitLab cover the tax bill when my restricted stock units become mine?"
   answer: "Shares are automatically sold at vesting to pay the taxes, based on your country's tax rate."
   evidence:
     - {doc: "hb:total-rewards/stock-options", quote: "Shares are sold to pay the taxes due on the RSU vesting."}
 - id: pp-08
   type: paraphrase
+  split: tune
   question: "Can I get a bonus for recommending a friend for an internship at GitLab?"
   answer: "No, contract or temporary roles including internships are not eligible (unless the intern later converts to a team member)."
   evidence:
     - {doc: "hb:hiring/referral-process", quote: "Contract or temporary roles, including Internships, are not eligible for referral bonuses."}
 - id: pp-09
   type: paraphrase
+  split: test
   question: "At Lancaster City Council, when in the morning should I let my boss know I'm too ill to work?"
   answer: "As soon as possible after 9am."
   evidence:
     - {doc: "pdf:lancaster-sickness-absence", quote: "must contact their line manager as soon as possible following 9am."}
 - id: pp-10
   type: paraphrase
+  split: tune
   question: "At Brunel University London, how long do I have to ask for my work travel costs back?"
   answer: "Within 3 months from the end of the month the expense was incurred; later claims need extra authorisation."
   evidence:
     - {doc: "pdf:brunel-travel-expenses", quote: "Claims should be submitted within 3 months from the end of the month in which the expense is incurred."}
 - id: pp-11
   type: paraphrase
+  split: test
   question: "Can the University of Waikato make staff use holiday days while the campus is shut?"
   answer: "Yes, during a close-down period, if at least 14 days' notice is given."
   evidence:
     - {doc: "pdf:waikato-annual-leave", quote: "it can require staff to take annual leave during that period provided at least 14 days' notice is given"}
 - id: pp-12
   type: paraphrase
+  split: test
   question: "If I work three days a week at Middlesex University, how much holiday do I get?"
   answer: "A proportional amount: 3/5 of the full entitlement."
   evidence:
     - {doc: "pdf:middlesex-annual-leave", quote: "if 3 days per week worked, entitled to 3/5 of full entitlement"}
 - id: pp-13
   type: paraphrase
+  split: tune
   question: "What's the most I can spend on a present for a GitLab colleague?"
   answer: "Up to $125 USD per gift, including shipping."
   evidence:
     - {doc: "hb:finance/expenses", quote: "The allowable cost for gifts is up to $125 USD (including shipping) per gift."}
 - id: pp-14
   type: paraphrase
+  split: tune
   question: "Can I buy second-hand work equipment from an individual and claim it back from GitLab?"
   answer: "Yes, purchases from private sellers are allowed, with a screenshot of the transaction as proof."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Purchasing from Private Sellers (e.g. either new or used equipment) is allowed."}
 - id: pp-15
   type: paraphrase
+  split: test
   question: "Where should most University of Cambridge staff send a report about wrongdoing?"
   answer: "To the Registrary, by email to registraryWBdisclosure@admin.cam.ac.uk."
   evidence:
@@ -228,60 +264,70 @@ questions:
 # ---------------------------------------------------------------- exact_term (10)
 - id: ex-01
   type: exact_term
+  split: test
   question: "What is PhishArm used for at GitLab?"
   answer: "It is the preferred way (Option 1) to report phishing emails."
   evidence:
     - {doc: "hb:security/security-assurance/governance/phishing", quote: "The preference for reporting phishing emails is Option 1 via PhishArm."}
 - id: ex-02
   type: exact_term
+  split: test
   question: "Which company provides GitLab's phishing simulations?"
   answer: "ProofPoint."
   evidence:
     - {doc: "hb:security/security-assurance/governance/phishing", quote: "Phishing simulations are provided by ProofPoint"}
 - id: ex-03
   type: exact_term
+  split: tune
   question: "What is CHIME in Brunel University London's expenses policy?"
   answer: "The online system through which employees submit expense claims."
   evidence:
     - {doc: "pdf:brunel-travel-expenses", quote: "expenses are submitted online through CHIME in a timely manner"}
 - id: ex-04
   type: exact_term
+  split: tune
   question: "What does the RED data classification mean at GitLab?"
   answer: "GitLab's most sensitive, restricted data; access is privileged and must be explicitly approved."
   evidence:
     - {doc: "hb:security/policies_and_standards/data-classification-standard", quote: "This is GitLab's most sensitive data and access to it should be considered privileged and must be explicitly approved."}
 - id: ex-05
   type: exact_term
+  split: test
   question: "How often are PCI in-scope applications reviewed in GitLab's access review procedure?"
   answer: "Bi-annually (every 6 months)."
   evidence:
     - {doc: "hb:security/security-assurance/security-compliance/access-reviews", quote: "PCI In-Scope Applications | Bi-Annual (6 months)"}
 - id: ex-06
   type: exact_term
+  split: tune
   question: "For which GitLab entities is the default mileage rate set at $.50/mile?"
   answer: "GitLab IT BV, GitLab Korea and GitLab Japan."
   evidence:
     - {doc: "hb:finance/expenses", quote: "so please update the rate on your mileage if needed to match your local compliance laws: GitLab IT BV, GitLab Korea and GitLab Japan."}
 - id: ex-07
   type: exact_term
+  split: tune
   question: "What is Āku Mahi at the University of Waikato?"
   answer: "The University's online leave system, used for annual leave applications and approvals."
   evidence:
     - {doc: "pdf:waikato-annual-leave", quote: "University's online leave system Āku Mahi"}
 - id: ex-08
   type: exact_term
+  split: tune
   question: "What is LevelUp at GitLab?"
   answer: "GitLab's internal learning platform, where training such as Data Classification Training is available."
   evidence:
     - {doc: "hb:security/policies_and_standards/data-classification-standard", quote: "Training is available via LevelUp, GitLab's internal learning platform."}
 - id: ex-09
   type: exact_term
+  split: tune
   question: "Which organisation's guidelines does GitLab's Secure Coding Training use?"
   answer: "OWASP (Open Web Application Security Project) Secure Coding Guidelines."
   evidence:
     - {doc: "hb:security/security-assurance/governance/sec-training", quote: "Secure Coding Guidelines from OWASP (Open Web Application Security Project)"}
 - id: ex-10
   type: exact_term
+  split: tune
   question: "What counts as a \"Late Invoice\" under GitLab's Vendor Terms and Conditions?"
   answer: "A vendor invoice submitted more than ninety (90) days after the services or products were provided."
   evidence:
@@ -290,6 +336,7 @@ questions:
 # ---------------------------------------------------------------- multi_doc (10)
 - id: md-01
   type: multi_doc
+  split: test
   question: "Compare the mileage rate Brunel University London pays for the first 10,000 miles with GitLab's default rate for GitLab Korea."
   answer: "Brunel pays 45p per mile; GitLab's default for GitLab Korea (and IT BV, Japan) is $.50 per mile."
   evidence:
@@ -297,6 +344,7 @@ questions:
     - {doc: "hb:finance/expenses", quote: "so please update the rate on your mileage if needed to match your local compliance laws: GitLab IT BV, GitLab Korea and GitLab Japan."}
 - id: md-02
   type: multi_doc
+  split: tune
   question: "How quickly does the University of Roehampton acknowledge a whistleblowing concern, and who issues the University of Salford's whistleblowing policy?"
   answer: "Roehampton normally acknowledges within 3 days; Salford's policy is issued by the Director of Legal Services."
   evidence:
@@ -304,6 +352,7 @@ questions:
     - {doc: "pdf:salford-whistleblowing", quote: "This policy is issued by the Director of Legal Services"}
 - id: md-03
   type: multi_doc
+  split: tune
   question: "Compare Brunel University London's deadline for staff expense claims with GitLab's deadline for vendors to submit invoices."
   answer: "Brunel: within 3 months from the end of the month the expense was incurred. GitLab vendors: no later than 90 days after providing the services/products."
   evidence:
@@ -311,6 +360,7 @@ questions:
     - {doc: "hb:finance/procurement/vendor-guidelines/vendor-agreement", quote: "Correct Vendor invoices must be submitted no later than ninety (90) days from the provisions of Professional Services and/or Products"}
 - id: md-04
   type: multi_doc
+  split: tune
   question: "How many days of annual leave do senior managers get at Middlesex University, and how much continuous leave must a University of Waikato manager allow?"
   answer: "Middlesex senior managers get 35 days per year; Waikato managers must allow at least two weeks in a continuous period."
   evidence:
@@ -318,6 +368,7 @@ questions:
     - {doc: "pdf:waikato-annual-leave", quote: "a line manager must allow a staff member to take at least two weeks of their annual leave entitlement in a continuous period."}
 - id: md-05
   type: multi_doc
+  split: tune
   question: "What do Malvern Town Council and Havant Borough Council each require when a personal data breach happens?"
   answer: "Malvern reports breaches to the Information Commissioner within 72 hours of discovery; Havant requires breaches to follow its Data Incident Report Plan."
   evidence:
@@ -325,6 +376,7 @@ questions:
     - {doc: "pdf:havant-data-protection", quote: "Any data security breaches must follow the Councils Data Incident Report Plan."}
 - id: md-06
   type: multi_doc
+  split: tune
   question: "How long does GitLab keep records of production changes, and how often are external certification systems access-reviewed?"
   answer: "Production change records are kept 3 years; external certification systems get quarterly entitlement reviews."
   evidence:
@@ -332,6 +384,7 @@ questions:
     - {doc: "hb:security/security-assurance/security-compliance/access-reviews", quote: "External Certification Systems | Quarterly"}
 - id: md-07
   type: multi_doc
+  split: test
   question: "Which third parties deliver GitLab's annual security awareness training and its phishing simulations?"
   answer: "Right Hand Cybersecurity delivers the annual security awareness training; ProofPoint runs the phishing simulations."
   evidence:
@@ -339,6 +392,7 @@ questions:
     - {doc: "hb:security/security-assurance/governance/phishing", quote: "Phishing simulations are provided by ProofPoint"}
 - id: md-08
   type: multi_doc
+  split: tune
   question: "How many days of annual leave do academic staff get at Middlesex University, and within what period must University of Waikato staff use their annual leave?"
   answer: "Middlesex academic and research staff get 35 days per year; Waikato staff are expected to take their leave within 12 months of it becoming due."
   evidence:
@@ -346,6 +400,7 @@ questions:
     - {doc: "pdf:waikato-annual-leave", quote: "Staff are expected to take all annual leave within 12 months of the date on which the"}
 - id: md-09
   type: multi_doc
+  split: test
   question: "What is GitLab's limit for a single taxi trip, and what mileage rate does Brunel University London pay after 10,000 miles?"
   answer: "GitLab: $150 for a single trip ($300 round trip). Brunel: 25p per mile after 10,000 miles."
   evidence:
@@ -353,157 +408,475 @@ questions:
     - {doc: "pdf:brunel-travel-expenses", quote: "25p per mile After 10,000 miles"}
 - id: md-10
   type: multi_doc
+  split: tune
   question: "What is RED data at GitLab, and how often must access to Red Data systems be reviewed?"
   answer: "RED is GitLab's most sensitive restricted data with explicitly approved, privileged access; access to Red Data systems is reviewed annually."
   evidence:
     - {doc: "hb:security/policies_and_standards/data-classification-standard", quote: "This is GitLab's most sensitive data and access to it should be considered privileged and must be explicitly approved."}
     - {doc: "hb:security/security-assurance/security-compliance/access-reviews", quote: "Red Data Systems | Annual"}
 
-# ---------------------------------------------------------------- outdated_version (15)
-# ov-01..05: REAL old versions exist in the corpus with the same text; tests whether the
-#            current version ranks above the old one.
-# ov-06..15: SYNTHETIC old copies (data/synthetic/) state a different fact; tests whether
-#            the system answers from the outdated copy.
-- id: ov-01
-  type: outdated_version
-  question: "After the initial term, how much notice is needed to terminate GitLab's Technology Partner Agreement?"
-  answer: "Sixty (60) days' prior written notice."
+# ---------------------------------------------------------------- outdated_version (39)
+# lk-21..25 were real-pair outdated questions; the old version states the SAME fact, so they are
+# lookup questions now (old versions listed as acceptable_doc_ids by the builder).
+# ov-*: a minimal-edit old copy (data/synthetic/) states a DIFFERENT fact; the quote contains the
+#       current fact, so the old copy can never count as a hit.
+- id: lk-21
+  type: lookup
+  split: test
+  question: "What is the emergency medical benefit limit under GitLab's business travel insurance?"
+  answer: "Up to $10,000."
   evidence:
-    - {doc: "hb:legal/technology-partner-agreement", quote: "Following the Initial Term, either Party may terminate this Agreement upon sixty (60) days' prior written notice to the other Party."}
-- id: ov-02
-  type: outdated_version
+    - {doc: "hb:finance/travel", quote: "Emergency Medical Benefits | Up to $10,000"}
+- id: lk-22
+  type: lookup
+  split: tune
   question: "How can either party terminate the GitLab Testing Agreement for convenience?"
   answer: "Immediately, upon written notice to the other party (email is sufficient)."
   evidence:
     - {doc: "hb:legal/testing-agreement", quote: "Upon written notice to the other party (email is sufficient), either party may terminate this Agreement immediately for convenience."}
-- id: ov-03
-  type: outdated_version
+- id: lk-23
+  type: lookup
+  split: tune
   question: "When will the University of Cambridge's Hybrid Working Policy be reviewed?"
   answer: "12 months after the implementation date (and periodically after that)."
   evidence:
     - {doc: "pdf:cambridge-hybrid-working-2023", quote: "The Policy will be reviewed 12 months after the implementation date"}
-- id: ov-04
-  type: outdated_version
+- id: lk-24
+  type: lookup
+  split: test
   question: "Under North Lanarkshire Council's IT acceptable use policy, is personal use of council IT monitored?"
   answer: "Yes, all personal use is subject to the same monitoring as business use."
   evidence:
     - {doc: "pdf:north-lanarkshire-it-acceptable-use-v5", quote: "all personal use is subject to the same monitoring activities as business use"}
-- id: ov-05
-  type: outdated_version
-  question: "Which law governs GitLab's Vendor Terms and Conditions?"
-  answer: "The laws of California, U.S.A. (courts in San Francisco)."
+- id: lk-25
+  type: lookup
+  split: tune
+  question: "How many free coaching sessions per year does Modern Health give GitLab team members?"
+  answer: "6 per year."
   evidence:
-    - {doc: "hb:finance/procurement/vendor-guidelines/vendor-agreement", quote: "This Agreement shall be construed and enforced in accordance with the laws of California, U.S.A."}
+    - {doc: "hb:total-rewards/benefits/modern-health", quote: "6 complimentary coaching sessions per year for personal and professional growth"}
 - id: ov-06
   type: outdated_version
+  split: tune
   question: "How long after the purchase date can I submit a GitLab expense claim and still be reimbursed without manager approval?"
   answer: "Up to 90 days; claims over 90 days are not reimbursed unless approved by the manager."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Expense claims over 90 days from purchase date will not be reimbursed unless approved by the Manager."}
 - id: ov-07
   type: outdated_version
+  split: tune
   question: "What is GitLab's nightly hotel limit for business travel?"
   answer: "$300 USD per night including tax, for standard rooms."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Hotel stays are reimbursable up to $300 USD (or equivalent local currency) inclusive of tax per night for standard rooms"}
 - id: ov-08
   type: outdated_version
+  split: tune
   question: "How much can I spend on meals per day while travelling for GitLab?"
   answer: "Up to $120 USD (or local equivalent) per day."
   evidence:
     - {doc: "hb:finance/expenses", quote: "Meals while traveling on Company business are reimbursable, up to $120 USD (or local equivalent currency) per day."}
 - id: ov-09
   type: outdated_version
+  split: test
   question: "What minimum password length does GitLab's password standard require?"
   answer: "12 characters."
   evidence:
     - {doc: "hb:security/policies_and_standards/password-standard", quote: "For systems where a password can be configured the minimum password length needs to be set to 12 characters."}
 - id: ov-10
   type: outdated_version
+  split: test
   question: "What is the maximum expiry period for a GitLab personal access token?"
   answer: "30 days."
   evidence:
     - {doc: "hb:security/policies_and_standards/token-management-standard", quote: "Personal Access Tokens - 30 days"}
 - id: ov-11
   type: outdated_version
+  split: tune
   question: "How long is parental leave for GitLab team members in the US?"
   answer: "16 weeks (job protected, except in certain circumstances)."
   evidence:
     - {doc: "hb:people-policies/leave-of-absence/us", quote: "Parental Leave | 16 weeks"}
 - id: ov-12
   type: outdated_version
+  split: tune
   question: "For how long does someone I refer to GitLab count as my referral?"
   answer: "6 months from the date Talent Acquisition receives the referral, for jobs in the same job family."
   evidence:
     - {doc: "hb:hiring/referral-process", quote: "Your referral is classified as your referral for 6 months"}
 - id: ov-13
   type: outdated_version
+  split: tune
   question: "How long do I have to exercise vested GitLab stock options after leaving the company?"
   answer: "90 days after termination."
   evidence:
     - {doc: "hb:total-rewards/stock-options", quote: "they have 90 days post termination to exercise their vested options."}
 - id: ov-14
   type: outdated_version
+  split: tune
   question: "How often does GitLab run phishing simulation campaigns?"
   answer: "At least once each fiscal quarter."
   evidence:
     - {doc: "hb:security/security-assurance/governance/phishing", quote: "At a minimum, one phishing simulation campaign will take place each fiscal quarter."}
 - id: ov-15
   type: outdated_version
+  split: test
   question: "After how many days of unreported absence can a GitLab team member be terminated for job abandonment?"
   answer: "Three consecutive workdays with no calendar entry and no contact with their supervisor (unless otherwise required by law)."
   evidence:
     - {doc: "hb:people-policies", quote: "When a team member is absent from work for three consecutive workdays"}
 
+- id: ov-16
+  type: outdated_version
+  question: "How far in advance should GitLab team members book international flights?"
+  answer: "At least 21 days in advance."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "International: At least 21 days in advance"}
+- id: ov-17
+  type: outdated_version
+  question: "What is GitLab's daily limit for parking and tolls on business travel?"
+  answer: "$150 per day."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Parking and tolls  at $150 limit per day."}
+- id: ov-18
+  type: outdated_version
+  question: "What is GitLab's yearly reimbursement limit for business cards?"
+  answer: "$60 per year (ordered via Moo)."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Limit is set to $60/year."}
+- id: ov-19
+  type: outdated_version
+  question: "When can I expense dry cleaning during a GitLab business trip?"
+  answer: "If the stay is over 5 days."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Dry cleaning is allowable if the stay is over 5 days."}
+- id: ov-20
+  type: outdated_version
+  question: "For applications where a password is the only authentication, how often must GitLab passwords expire?"
+  answer: "Within a maximum of 90 calendar days."
+  evidence:
+    - {doc: "hb:security/policies_and_standards/password-standard", quote: "For applications where a password is the only source of authentication, a password must be expired within a maximum of 90 calendar days."}
+- id: ov-21
+  type: outdated_version
+  question: "After how many failed login attempts must a GitLab system temporarily lock the account?"
+  answer: "After 10 failed attempts."
+  evidence:
+    - {doc: "hb:security/policies_and_standards/password-standard", quote: "Repeated failed login attempts need to trigger a temporary account lockout after 10 failed attempts."}
+- id: ov-22
+  type: outdated_version
+  question: "What is the maximum lifetime of a GitLab group access token?"
+  answer: "1 year."
+  evidence:
+    - {doc: "hb:security/policies_and_standards/token-management-standard", quote: "Group Tokens – 1 year"}
+- id: ov-23
+  type: outdated_version
+  question: "When do unexercised GitLab stock options expire?"
+  answer: "10 years after they were issued (if they haven't expired earlier through termination)."
+  evidence:
+    - {doc: "hb:total-rewards/stock-options", quote: "your stock options expire 10 years after they were issued."}
+- id: ov-24
+  type: outdated_version
+  question: "How long can a new Support on-call alert go unacknowledged before the Support Manager on-call is alerted?"
+  answer: "10 minutes (Senior Support Managers are alerted after a further 5 minutes)."
+  evidence:
+    - {doc: "hb:support/on-call", quote: "If a new alert has not been acknowledged after 10 minutes, the Support Manager on-call is alerted."}
+- id: ov-25
+  type: outdated_version
+  question: "During a long customer emergency call, how often should a GitLab Support engineer plan to take a break?"
+  answer: "About every 90 minutes."
+  evidence:
+    - {doc: "hb:support/on-call", quote: "you plan to take a break each 90 minutes"}
+- id: ov-26
+  type: outdated_version
+  question: "How long can a business trip last and still be covered by GitLab's travel insurance?"
+  answer: "Less than 180 days."
+  evidence:
+    - {doc: "hb:finance/travel", quote: "Trip Duration | Covered for trips less than 180 days"}
+- id: ov-27
+  type: outdated_version
+  question: "What is the maximum baggage protection under GitLab's business travel insurance?"
+  answer: "$2,500."
+  evidence:
+    - {doc: "hb:finance/travel", quote: "Baggage Protection | Maximum of $2,500"}
+- id: ov-28
+  type: outdated_version
+  question: "How many free therapy sessions per year does Modern Health give GitLab team members?"
+  answer: "6 per year."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/modern-health", quote: "6 complimentary therapy sessions per year with licensed mental health professionals"}
+- id: ov-29
+  type: outdated_version
+  question: "Up to what age are team members' children eligible for Modern Health?"
+  answer: "Up to age 27."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/modern-health", quote: "Children up to age 27"}
+- id: ov-30
+  type: outdated_version
+  question: "How much of base salary does GitLab's US short- and long-term disability insurance replace?"
+  answer: "Up to 66.7% of base salary."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/general-and-entity-benefits/inc-benefits-us", quote: "replacing up to 66.7% of base salary for qualifying disabilities"}
+- id: ov-31
+  type: outdated_version
+  question: "How much dental coverage per year do GitLab UK team members get?"
+  answer: "£400 per year (80% reimbursement)."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk", quote: "Dental coverage: £400 per year (80% reimbursement)"}
+- id: ov-32
+  type: outdated_version
+  question: "How long does GitLab's recruiting team take to review a referral submission?"
+  answer: "5 business days (per the SLA)."
+  evidence:
+    - {doc: "hb:hiring/referral-operations", quote: "please allow us 5 business days to review the submission."}
+- id: ov-33
+  type: outdated_version
+  question: "How long does GitLab retain production backup test records?"
+  answer: "1 year."
+  evidence:
+    - {doc: "hb:security/policies_and_standards/records-retention-deletion", quote: "Production backup tests | 1 year"}
+- id: ov-34
+  type: outdated_version
+  question: "How long does GitLab keep risk treatment plans?"
+  answer: "3 years."
+  evidence:
+    - {doc: "hb:security/policies_and_standards/records-retention-deletion", quote: "Risk treatment plans | 3 years"}
+- id: ov-35
+  type: outdated_version
+  question: "How long should a GitLab manager try to reach an absent team member before contacting their People Business Partner?"
+  answer: "24 hours."
+  evidence:
+    - {doc: "hb:people-policies", quote: "If a manager is unable to reach a team member via email or Slack within a 24 hour period they should contact their People Business Partner."}
+- id: ov-36
+  type: outdated_version
+  question: "If someone I referred to GitLab reached team interviews but wasn't hired, how long should I wait before referring them again?"
+  answer: "6 months."
+  evidence:
+    - {doc: "hb:hiring/referral-process", quote: "we recommend waiting 6 months to refer them again"}
+# ov-37..42: a RULE changed in the old copy (approval level, allowed/not allowed, who pays, required/optional)
+- id: ov-37
+  type: outdated_version
+  split: test
+  question: "Who has to approve a GitLab travel booking that goes over the policy limits?"
+  answer: "The manager: manager approval must be attached to the claim."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "All items booked which are over the limits set will need to have manager approval attached to the claim."}
+- id: ov-38
+  type: outdated_version
+  split: tune
+  question: "Whose approval is needed if a GitLab team member books more than 5 co-working days in a month?"
+  answer: "Manager AND Finance approval, obtained before submitting expenses."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "If more than 5 days are booked in the month, then Manager and Finance approval"}
+- id: ov-39
+  type: outdated_version
+  split: test
+  question: "Can I expense room service as a meal during a GitLab business trip?"
+  answer: "Yes, room service is allowable as a meal (e.g. breakfast, lunch or dinner)."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Room service is allowable as a meal for e.g. breakfast/lunch/dinner."}
+- id: ov-40
+  type: outdated_version
+  split: tune
+  question: "Can I give a gift card as a gift and expense it at GitLab?"
+  answer: "No, cash and cash equivalents such as gift cards are not allowed."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Cash or cash equivalents, such as gift cards, are not allowed"}
+- id: ov-41
+  type: outdated_version
+  split: test
+  question: "When a group of GitLab team members can't split a meal bill, who should pay it?"
+  answer: "The most senior team member present pays and submits it for reimbursement."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "If this is not practicable to do due to the group size, then the most senior Team Member present should pay the bill"}
+- id: ov-42
+  type: outdated_version
+  split: test
+  question: "Do I need pre-approval before claiming co-working space costs at GitLab?"
+  answer: "Yes, pre-approval is needed before submitting claims."
+  evidence:
+    - {doc: "hb:finance/expenses", quote: "Coworking space is reimbursable for monthly space and one-off days during business travel. Pre-Approval is needed prior to submitting claims."}
+- id: ov-43
+  type: outdated_version
+  split: test
+  question: "How much optical coverage per year do GitLab UK team members get?"
+  answer: "£200 per year (80% reimbursement) plus £25 for annual eye tests."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk", quote: "Optical coverage: £200 per year (80% reimbursement) plus £25 for annual eye tests"}
+- id: ov-44
+  type: outdated_version
+  split: tune
+  question: "What discount on legal fees does GitLab's US legal services benefit provide?"
+  answer: "25% fee discounts (plus free 30-minute consultations)."
+  evidence:
+    - {doc: "hb:total-rewards/benefits/general-and-entity-benefits/inc-benefits-us", quote: "Free 30-minute consultations and 25% fee discounts"}
+
+# ---------------------------------------------------------------- real_pair (2)
+# Real, non-synthetic old versions in the corpus with a genuine rule change. old_evidence = what the old
+# version says instead; the builder checks it. Reported on their own row (a sanity check, small n).
+- id: rp-01
+  type: real_pair
+  split: tune
+  question: "Under the GitLab Testing Agreement, is the customer required to give feedback on testing features?"
+  answer: "No, it is optional: the customer MAY provide feedback (versions v1-v4 said the customer WILL provide it)."
+  evidence:
+    - {doc: "hb:legal/testing-agreement", quote: "Customer may provide suggestions, ideas, enhancement requests, or other recommendations"}
+  old_evidence:
+    - {quote: "Customer will provide suggestions, ideas, enhancement requests, or other recommendations"}
+- id: rp-02
+  type: real_pair
+  split: test
+  # The old draft simply doesn't state the rule, so there is no old FACT to be stale: score it as
+  # "current version ranked above the old one" (doc-level stale), not fact_stale.
+  stale_level: doc
+  question: "Under the University of Cambridge's Hybrid Working Policy, where must the remote working environment be?"
+  answer: "Within the UK (the 2023 policy states the remote working environment will be based within the UK; the 2022 draft's definition did not)."
+  evidence:
+    - {doc: "pdf:cambridge-hybrid-working-2023", quote: "Under this Policy, the remote working environment will be based within the UK."}
+  old_evidence:
+    - {quote: "Remote working environment. The place where remote working is undertaken. It is anticipated that this will normally be an individual's home"}
+
+# ---------------------------------------------------------------- history (12)
+# Sanity check: these ASK about the old version, so the gold doc is the outdated copy.
+# A system that simply hides old documents will fail them.
+- id: hi-01
+  type: history
+  question: "What was GitLab's nightly hotel limit in its 2023 travel and expense policy?"
+  answer: "$250 USD per night."
+  evidence:
+    - {doc: "syn:expenses-2023", quote: "Hotel stays are reimbursable up to $250 USD (or equivalent local currency) inclusive of tax per night for standard rooms"}
+- id: hi-02
+  type: history
+  question: "What minimum password length did GitLab's 2022 password standard require?"
+  answer: "8 characters."
+  evidence:
+    - {doc: "syn:password-standard-2022", quote: "minimum password length needs to be set to 8 characters"}
+- id: hi-03
+  type: history
+  question: "How often did GitLab run phishing simulations under its 2022 phishing program?"
+  answer: "At least twice per fiscal year."
+  evidence:
+    - {doc: "syn:phishing-program-2022", quote: "one phishing simulation campaign will take place twice per fiscal year"}
+- id: hi-04
+  type: history
+  question: "How long was US parental leave at GitLab under the 2022 leave policy?"
+  answer: "12 weeks."
+  evidence:
+    - {doc: "syn:us-leave-of-absence-2022", quote: "Parental Leave | 12 weeks"}
+- id: hi-05
+  type: history
+  question: "Under GitLab's 2021 equity policy, how long did departing team members have to exercise vested options?"
+  answer: "30 days after termination."
+  evidence:
+    - {doc: "syn:stock-options-2021", quote: "they have 30 days post termination to exercise their vested options."}
+- id: hi-06
+  type: history
+  split: tune
+  question: "Under GitLab's 2023 expense policy, how long after purchase could an expense claim be submitted without manager approval?"
+  answer: "60 days."
+  evidence:
+    - {doc: "syn:expenses-2023", quote: "Expense claims over 60 days from purchase date will not be reimbursed unless approved by the Manager."}
+- id: hi-07
+  type: history
+  split: tune
+  question: "In GitLab's 2023 token management standard, what was the maximum expiry for personal access tokens?"
+  answer: "90 days."
+  evidence:
+    - {doc: "syn:token-management-standard-2023", quote: "Personal Access Tokens - 90 days"}
+- id: hi-08
+  type: history
+  split: tune
+  question: "Under GitLab's 2022 referral process, for how long did a referral count as yours?"
+  answer: "12 months."
+  evidence:
+    - {doc: "syn:referral-process-2022", quote: "Your referral is classified as your referral for 12 months"}
+- id: hi-09
+  type: history
+  split: tune
+  question: "Under GitLab's 2022 people policies, after how many days of unreported absence could a team member be terminated for job abandonment?"
+  answer: "Five consecutive workdays."
+  evidence:
+    - {doc: "syn:people-policies-2022", quote: "When a team member is absent from work for five consecutive workdays"}
+- id: hi-10
+  type: history
+  split: tune
+  question: "In GitLab's 2023 Support on-call guide, how long could a new alert go unacknowledged before the Support Manager on-call was alerted?"
+  answer: "15 minutes."
+  evidence:
+    - {doc: "syn:support-on-call-2023", quote: "If a new alert has not been acknowledged after 15 minutes, the Support Manager on-call is alerted."}
+- id: hi-11
+  type: history
+  split: tune
+  question: "Under GitLab's 2022 business travel insurance, how long could a trip last and still be covered?"
+  answer: "Less than 90 days."
+  evidence:
+    - {doc: "syn:travel-safety-2022", quote: "Trip Duration | Covered for trips less than 90 days"}
+- id: hi-12
+  type: history
+  split: tune
+  question: "Under GitLab's 2023 expense policy, could room service be expensed as a meal?"
+  answer: "No, room service was not reimbursable as a meal."
+  evidence:
+    - {doc: "syn:expenses-2023", quote: "Room service is not reimbursable as a meal for e.g. breakfast/lunch/dinner."}
+
 # ---------------------------------------------------------------- no_answer (10)
 - id: na-01
   type: no_answer
+  split: tune
   question: "What is GitLab's dress code for video calls with customers?"
   absent:
     - {pattern: "dress code", scope: ""}
 - id: na-02
   type: no_answer
+  split: test
   question: "What is the fire evacuation procedure for Lancaster City Council staff?"
   absent:
     - {pattern: "evacuat|fire drill|fire alarm", scope: "pdf:lancaster"}
 - id: na-03
   type: no_answer
+  split: tune
   question: "How much does a staff parking permit cost at Middlesex University?"
   absent:
     - {pattern: "parking", scope: "pdf:middlesex"}
     - {pattern: "parking permit", scope: ""}
 - id: na-04
   type: no_answer
+  split: test
   question: "What is the prize budget for GitLab's internal hackathons?"
   absent:
     - {pattern: "hackathon", scope: ""}
 - id: na-05
   type: no_answer
+  split: tune
   question: "How long is the paid lunch break for Lancaster City Council employees?"
   absent:
     - {pattern: "lunch|meal break|rest break", scope: "pdf:lancaster"}
 - id: na-06
   type: no_answer
+  split: tune
   question: "Does Heriot-Watt University contribute to home broadband costs for hybrid workers?"
   absent:
     - {pattern: "broadband|internet|wi-?fi", scope: "pdf:heriot"}
 - id: na-07
   type: no_answer
+  split: tune
   question: "What discount do University of Salford staff get at the campus gym?"
   absent:
     - {pattern: "gym|leisure|sport", scope: "pdf:salford"}
 - id: na-08
   type: no_answer
+  split: tune
   question: "Are staff allowed to bring dogs onto Queen Mary University of London campuses?"
   absent:
     - {pattern: "\\bdogs?\\b|\\bpets?\\b|animal", scope: "pdf:qmul"}
 - id: na-09
   type: no_answer
+  split: test
   question: "What overtime pay rate does West Sussex County Council offer its staff?"
   absent:
     - {pattern: "overtime", scope: "pdf:west-sussex"}
 - id: na-10
   type: no_answer
+  split: tune
   question: "How many days of paid study leave do University of Roehampton staff get?"
   absent:
     - {pattern: "study leave", scope: "pdf:roehampton"}

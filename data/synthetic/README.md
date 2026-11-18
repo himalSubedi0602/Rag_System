@@ -1,5 +1,7 @@
 # Synthetic old policy versions
 
+> **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).
+
 These files are **deliberately outdated copies** of real GitLab handbook pages, written for the
 evaluation (Phase 5). Each one copies the relevant section of a current page, changes one or more
 facts and gives it an earlier date. They exist so the test set can measure how often the system

@@ -261,3 +261,17 @@ def test_ingest_reads_synthetic_old_versions(tmp_path):
     assert old["version_group"] == new["version_group"] == "hb:finance/expenses"
     assert new["is_current"] is True
     assert old["updated_date"] == "2023-03-01" and old["department"] == "finance"
+
+
+
+def test_version_status_superseded_vs_legacy():
+    records = [make_record("hb:legal/testing-agreement-v1"), make_record("hb:legal/testing-agreement"),
+               make_record("hb:legal/legacy/legacy-psa-v1"), make_record("hb:legal/legacy/legacy-psa-v2"),
+               make_record("hb:finance/expenses")]
+    assign_versions(records)
+    status = {r["doc_id"]: r["version_status"] for r in records}
+    assert status["hb:legal/testing-agreement"] == "current"
+    assert status["hb:legal/testing-agreement-v1"] == "superseded"   # its page still has a current version
+    assert status["hb:legal/legacy/legacy-psa-v1"] == "legacy"       # no current replacement exists
+    assert status["hb:legal/legacy/legacy-psa-v2"] == "legacy"
+    assert status["hb:finance/expenses"] == "current"

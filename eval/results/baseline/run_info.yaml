@@ -1,0 +1,5 @@
+chunks: 2468
+chunks_truncated_pct: 92.7
+tokens_unseen_pct: 46.7
+mean_latency_ms: 12.9
+questions: 84

@@ -28,6 +28,7 @@ def make_doc(pages, source_type="markdown", doc_id="hb:test/doc"):
     """Minimal document record as produced by ingestion."""
     return {
         "doc_id": doc_id, "doc_title": "Test Policy", "version_group": doc_id, "is_current": True,
+        "version_status": "current",
         "source_type": source_type, "source_path": "handbook/test/doc.md", "updated_date": "2025-01-01",
         "department": "finance", "access_roles": ["finance"],
         "pages": [{"page": (i + 1 if source_type == "pdf" else None), "text": t} for i, t in enumerate(pages)],

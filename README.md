@@ -10,6 +10,8 @@ plus public policy PDFs). Answers come with `[1]`, `[2]` citations, or the syste
 the system use the old one, and which fix reduces that more: filtering to current versions or
 date-aware reranking?
 
+> **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).
+
 ## Findings
 
 _TODO (Phase 10): headline results._
@@ -57,6 +59,7 @@ python -m src.ingest
 python -m src.inspect_docs --n 5
 python -m src.chunking configs/baseline.yaml
 python -m src.index configs/baseline.yaml --query "How many days do I have to submit an expense claim?"
+python -m src.make_synthetic   # only when data/synthetic/changes.yaml changes; then ingest again
 python -m src.testset
 ```
 
@@ -70,7 +73,16 @@ python -m src.testset
 ### Run an experiment
 
 ```bash
-python run_experiment.py configs/baseline.yaml   # available from Phase 6
+python run_experiment.py configs/baseline.yaml
+```
+
+Results go to `eval/results/<run_name>/` (`metrics.csv`, `summary.md`, `config.yaml`; the full
+per-question log `per_question.jsonl` is git-ignored). Runs use the **tune** split; the test split
+needs `--final` and is used once, at the end. Compare two runs (side by side with 95% intervals, plus
+per-question better/worse counts):
+
+```bash
+python -m src.compare baseline <other_run>
 ```
 
 Each experiment is one YAML file in `configs/` that lists only what it changes from

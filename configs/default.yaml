@@ -48,3 +48,4 @@ generation:
 eval:
   split: tune              # tune | test (test is used once, at the very end)
   ks: [1, 3, 5]
+  diagnostic_depths: [30, 100]   # chunk recall at these depths: is the answer in the candidate pool at all?

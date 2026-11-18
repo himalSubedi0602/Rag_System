@@ -32,6 +32,7 @@ def make_chunk(i: int, text: str, is_current: bool = True, roles=("all_employees
     return {
         "chunk_id": f"hb:doc{i}::fixed-500-50::0", "doc_id": f"hb:doc{i}", "doc_title": f"Doc {i}",
         "version_group": f"hb:doc{i}", "is_current": is_current, "source_type": "markdown",
+        "version_status": "current" if is_current else "superseded",
         "source_path": f"handbook/doc{i}.md", "section_path": "", "page": page, "updated_date": "2025-01-01",
         "department": "finance", "access_roles": list(roles), "content_hash": f"h{i}-{hash(text)}",
         "chunk_strategy": "fixed-500-50", "text": text, "chunk_index": 0, "token_count": 5,
@@ -69,6 +70,12 @@ def test_fingerprint_changes_when_a_chunk_changes():
     assert fingerprint(CHUNKS) == fingerprint(list(CHUNKS))
     assert fingerprint(CHUNKS) != fingerprint(edited)
     assert fingerprint(CHUNKS) != fingerprint(CHUNKS[:2])
+
+
+def test_fingerprint_changes_when_filter_metadata_changes():
+    # Same text, but the page became an old version: stored filter metadata would be stale.
+    relabelled = [CHUNKS[0], CHUNKS[1], {**CHUNKS[2], "is_current": False, "version_status": "superseded"}]
+    assert fingerprint(CHUNKS) != fingerprint(relabelled)
 
 
 def test_metadata_roundtrip_handles_none():
@@ -155,3 +162,13 @@ def test_bm25_prefix_makes_title_searchable():
               for i, title in enumerate(["Expenses", "Leave", "Security", "Travel"])]
     assert BM25Index(chunks, add_prefix=False).search("Security", k=5) == []
     assert BM25Index(chunks, add_prefix=True).search("Security", k=5)[0][0] == chunks[2]["chunk_id"]
+
+
+def test_ties_are_broken_by_hash_not_by_name_or_status():
+    from src.index import rank_results, tie_break_key
+    pairs = [("syn:old::c::0", 0.7), ("hb:new::c::0", 0.7), ("hb:other::c::0", 0.9)]
+    ranked = rank_results(pairs)
+    assert ranked[0][0] == "hb:other::c::0"                              # higher score always first
+    expected = sorted(["syn:old::c::0", "hb:new::c::0"], key=tie_break_key)
+    assert [cid for cid, _ in ranked[1:]] == expected                    # ties: hash order
+    assert rank_results(list(reversed(pairs))) == ranked                 # input order doesn't matter
