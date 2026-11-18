@@ -240,3 +240,24 @@ def test_matches_include():
 def test_remove_table_of_contents_number_column():
     lines = ["Table of Contents", "1.", "1.1", "1.2", "2.", "Introduction", "5.3", "Leave rules apply."]
     assert remove_table_of_contents(lines) == ["Table of Contents", "Introduction", "5.3", "Leave rules apply."]
+
+
+def test_ingest_reads_synthetic_old_versions(tmp_path):
+    raw, processed, synthetic = tmp_path / "raw", tmp_path / "processed", tmp_path / "synthetic"
+    (raw / "handbook" / "finance").mkdir(parents=True)
+    synthetic.mkdir()
+    (raw / "handbook" / "finance" / "expenses.md").write_text(
+        "---\ntitle: Expenses\n---\n" + "Hotels are capped at $300 per night. " * 10)
+    (synthetic / "expenses-2023.md").write_text(
+        '---\ntitle: Expenses\nversion_group: "hb:finance/expenses"\nis_current: false\n'
+        'synthetic_old_version: true\nupdated_date: "2023-03-01"\ndepartment: finance\n---\n'
+        + "Hotels are capped at $250 per night. " * 10)
+
+    stats = ingest_all(raw, processed, SOURCES, synthetic)
+    docs = {d["doc_id"]: d for d in load_documents(processed)}
+    assert stats["documents"] == 2
+    old, new = docs["syn:expenses-2023"], docs["hb:finance/expenses"]
+    assert old["synthetic_old_version"] is True and old["is_current"] is False
+    assert old["version_group"] == new["version_group"] == "hb:finance/expenses"
+    assert new["is_current"] is True
+    assert old["updated_date"] == "2023-03-01" and old["department"] == "finance"
