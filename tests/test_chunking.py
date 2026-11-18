@@ -156,3 +156,16 @@ def test_truncation_stats():
 def test_strategy_key():
     assert strategy_key(cfg()) == "fixed-500-50"
     assert strategy_key(cfg("heading", 250, 25, 30)) == "heading-250-25-min30"
+
+
+def test_chunk_file_is_stale_when_documents_or_settings_change(tmp_path):
+    from src.chunking import chunk_source_key, chunks_are_current, write_chunks_with_meta
+    docs_file = tmp_path / "documents.jsonl"
+    docs_file.write_text('{"doc_id": "a"}\n')
+    cfg_a = {"chunking": cfg()}
+    path = tmp_path / "chunks" / "fixed-500-50.jsonl"
+    write_chunks_with_meta([{"chunk_id": "a::0"}], path, chunk_source_key(cfg_a, docs_file))
+    assert chunks_are_current(path, chunk_source_key(cfg_a, docs_file))
+    docs_file.write_text('{"doc_id": "a"}\n{"doc_id": "b"}\n')                      # documents changed
+    assert not chunks_are_current(path, chunk_source_key(cfg_a, docs_file))
+    assert not chunks_are_current(path, chunk_source_key({"chunking": cfg(size=250)}, docs_file))  # settings changed

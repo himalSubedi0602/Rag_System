@@ -20,7 +20,9 @@ import chromadb
 import numpy as np
 from rank_bm25 import BM25Okapi
 
-from src.chunking import EMBEDDING_MAX_TOKENS, chunk_all, chunks_path, index_text, load_chunks, strategy_key, write_chunks
+from src.chunking import (EMBEDDING_MAX_TOKENS, chunk_all, chunk_source_key, chunks_are_current, chunks_path,
+                          get_tokenizer, index_text, load_chunks, strategy_key, token_offsets, window_spans,
+                          write_chunks_with_meta)
 from src.config import load_config, resolve_path
 from src.ingest import load_documents
 
@@ -182,6 +184,79 @@ def vector_search(collection: Any, embed_fn: EmbedFn, query: str, k: int,
 
 
 # ---------------------------------------------------------------------------
+# Small-to-big (run 2b): search small pieces, return their parent chunk
+# ---------------------------------------------------------------------------
+
+PIECE_META = ("doc_id", "version_group", "is_current", "version_status", "updated_date", "access_roles")
+
+
+def make_pieces(chunks: list[dict[str, Any]], cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Split every chunk into overlapping pieces of `piece_size` tokens. Each piece remembers its parent.
+
+    The prefix option (if on) is added to every piece, so each small piece still says which document
+    and section it comes from.
+    """
+    tokenizer = get_tokenizer(cfg["chunking"]["tokenizer"])
+    size, overlap = cfg["retrieval"]["piece_size"], cfg["retrieval"]["piece_overlap"]
+    pieces = []
+    for chunk in chunks:
+        text = chunk["text"]
+        offsets = token_offsets(text, tokenizer)
+        for j, (a, b) in enumerate(window_spans(offsets, 0, len(offsets), size, overlap)):
+            piece_text = text[offsets[a][0]:offsets[b - 1][1]]
+            pieces.append({
+                "piece_id": f"{chunk['chunk_id']}::p{j}",
+                "parent_chunk_id": chunk["chunk_id"],
+                "text": index_text({**chunk, "text": piece_text}, cfg["chunking"]["add_prefix"]),
+                **{field: chunk[field] for field in PIECE_META},
+            })
+    return pieces
+
+
+def piece_collection_name(cfg: dict[str, Any]) -> str:
+    r = cfg["retrieval"]
+    return f"{collection_name(cfg)}__pieces{r['piece_size']}-{r['piece_overlap']}"
+
+
+def build_piece_index(chunks: list[dict[str, Any]], cfg: dict[str, Any], client: chromadb.ClientAPI,
+                      embed_fn: EmbedFn, force: bool = False) -> tuple[Any, bool]:
+    """Create (or reuse) the collection of pieces. Reused only if the parent chunks are unchanged."""
+    name = piece_collection_name(cfg)
+    fp = fingerprint(chunks) + f"|pieces{cfg['retrieval']['piece_size']}-{cfg['retrieval']['piece_overlap']}"
+    if name in {c.name for c in client.list_collections()}:
+        collection = client.get_collection(name, embedding_function=None)
+        if not force and collection.metadata.get("fingerprint") == fp:
+            return collection, False
+        client.delete_collection(name)
+    collection = client.create_collection(name, configuration={"hnsw": {"space": "cosine"}},
+                                          metadata={"fingerprint": fp}, embedding_function=None)
+    pieces = make_pieces(chunks, cfg)
+    for i in range(0, len(pieces), ADD_BATCH):
+        batch = pieces[i:i + ADD_BATCH]
+        collection.add(ids=[p["piece_id"] for p in batch], embeddings=embed_fn([p["text"] for p in batch]),
+                       documents=[p["text"] for p in batch],
+                       metadatas=[{"parent_chunk_id": p["parent_chunk_id"],
+                                   **{f: ("" if p[f] is None else p[f]) for f in PIECE_META}} for p in batch])
+    return collection, True
+
+
+def small_to_big_search(piece_collection: Any, embed_fn: EmbedFn, query: str, k: int,
+                        where: dict[str, Any] | None = None) -> list[tuple[str, float]]:
+    """Rank pieces, then return each parent chunk once, scored by its best piece: [(chunk_id, score), ...]."""
+    n_pieces = min(piece_collection.count(), k * 6)  # enough pieces to usually yield k distinct parents
+    result = piece_collection.query(query_embeddings=embed_fn([query]), n_results=n_pieces, where=where,
+                                    include=["distances", "metadatas"])
+    pieces = rank_results([(pid, 1.0 - dist) for pid, dist in zip(result["ids"][0], result["distances"][0])])
+    parent_of = {pid: meta["parent_chunk_id"] for pid, meta in zip(result["ids"][0], result["metadatas"][0])}
+    parents: dict[str, float] = {}
+    for pid, score in pieces:                      # best piece first, so the first score seen is the best
+        parents.setdefault(parent_of[pid], score)
+        if len(parents) == k:
+            break
+    return list(parents.items())
+
+
+# ---------------------------------------------------------------------------
 # BM25
 # ---------------------------------------------------------------------------
 
@@ -226,15 +301,18 @@ class IndexBundle:
     bm25: BM25Index
     chunks_by_id: dict[str, dict[str, Any]]
     embed_fn: EmbedFn
+    piece_collection: Any = None   # only for small_to_big
 
 
 def load_or_create_chunks(cfg: dict[str, Any]) -> list[dict[str, Any]]:
-    """Read this config's chunk file, creating it first if it doesn't exist yet."""
+    """Read this config's chunk file, (re)building it if it is missing or was built from other inputs
+    (changed documents, settings or chunker code), so a stale chunk file is never reused."""
     path = chunks_path(cfg)
-    if not path.exists():
-        print(f"No {path.name} yet; chunking documents first ...")
-        docs = load_documents(resolve_path(cfg["paths"]["processed_dir"]))
-        write_chunks(chunk_all(docs, cfg["chunking"]), path)
+    processed = resolve_path(cfg["paths"]["processed_dir"])
+    key = chunk_source_key(cfg, processed / "documents.jsonl")
+    if not chunks_are_current(path, key):
+        print(f"{path.name} missing or out of date; chunking documents ...")
+        write_chunks_with_meta(chunk_all(load_documents(processed), cfg["chunking"]), path, key)
     return load_chunks(path)
 
 
@@ -248,8 +326,15 @@ def build_indexes(cfg: dict[str, Any], force: bool = False, verbose: bool = True
         action = "Built" if built else "Reused (chunks unchanged)"
         print(f"{action} Chroma collection '{collection.name}': {collection.count()} chunks "
               f"in {time.perf_counter() - start:.1f}s")
+    pieces = None
+    if cfg["retrieval"]["small_to_big"]:
+        start = time.perf_counter()
+        pieces, built = build_piece_index(chunks, cfg, get_client(cfg), embed_fn, force)
+        if verbose:
+            print(f"{'Built' if built else 'Reused'} piece collection '{pieces.name}': {pieces.count()} pieces "
+                  f"in {time.perf_counter() - start:.1f}s")
     bm25 = BM25Index(chunks, cfg["chunking"]["add_prefix"])
-    return IndexBundle(collection, bm25, {c["chunk_id"]: c for c in chunks}, embed_fn)
+    return IndexBundle(collection, bm25, {c["chunk_id"]: c for c in chunks}, embed_fn, pieces)
 
 
 def print_results(title: str, results: list[tuple[str, float]], chunks_by_id: dict[str, dict[str, Any]]) -> None:

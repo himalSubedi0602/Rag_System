@@ -27,6 +27,8 @@ from src.config import load_config, resolve_path
 from src.ingest import load_documents
 
 PAGE_SEPARATOR = "\n\n"  # PDF pages are joined with this into one document string
+# Bump when chunk_document's output changes (new field, new rule): existing chunk files are then rebuilt.
+CHUNKER_VERSION = 2
 
 # How many tokens each embedding model actually reads; everything after is silently dropped.
 # (Values from each model's sentence-transformers config; Phase 4 checks them against the loaded model.)
@@ -322,6 +324,26 @@ def load_chunks(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in f]
 
 
+def chunk_source_key(cfg: dict[str, Any], documents_path: Path) -> dict[str, Any]:
+    """What a chunk file was built from: the documents file's hash, the chunking settings, the code version."""
+    digest = hashlib.sha256(documents_path.read_bytes()).hexdigest()
+    # Only settings that change chunk CONTENT (the prefix is applied later, at embedding time).
+    content_settings = {k: cfg["chunking"][k] for k in
+                        ("strategy", "chunk_size", "chunk_overlap", "min_section_tokens", "tokenizer")}
+    return {"documents_sha256": digest, "chunking": content_settings, "chunker_version": CHUNKER_VERSION}
+
+
+def chunks_are_current(path: Path, key: dict[str, Any]) -> bool:
+    """True if the chunk file exists and was built from exactly these inputs (its .meta.json matches)."""
+    meta = path.with_suffix(".meta.json")
+    return path.exists() and meta.exists() and json.loads(meta.read_text()) == key
+
+
+def write_chunks_with_meta(chunks: list[dict[str, Any]], path: Path, key: dict[str, Any]) -> None:
+    write_chunks(chunks, path)
+    path.with_suffix(".meta.json").write_text(json.dumps(key, indent=1, sort_keys=True))
+
+
 def chunks_path(cfg: dict[str, Any]) -> Path:
     """Where the chunks for this config live: data/processed/chunks/<strategy_key>.jsonl."""
     return resolve_path(cfg["paths"]["processed_dir"]) / "chunks" / f"{strategy_key(cfg['chunking'])}.jsonl"
@@ -357,10 +379,11 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    docs = load_documents(resolve_path(cfg["paths"]["processed_dir"]))
+    processed = resolve_path(cfg["paths"]["processed_dir"])
+    docs = load_documents(processed)
     chunks = chunk_all(docs, cfg["chunking"])
     out = chunks_path(cfg)
-    write_chunks(chunks, out)
+    write_chunks_with_meta(chunks, out, chunk_source_key(cfg, processed / "documents.jsonl"))
     print(f"Wrote {out.relative_to(resolve_path('.'))}")
     print_stats(chunks, cfg)
 

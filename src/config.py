@@ -77,6 +77,8 @@ def validate_config(cfg: dict[str, Any]) -> None:
         raise ConfigError("chunking.min_section_tokens must be >= 0 and smaller than chunk_size")
 
     retrieval = cfg["retrieval"]
+    if retrieval["small_to_big"] and not (0 <= retrieval["piece_overlap"] < retrieval["piece_size"] < chunking["chunk_size"]):
+        raise ConfigError("small_to_big needs 0 <= piece_overlap < piece_size < chunking.chunk_size")
     if not 0 < retrieval["final_k"] <= retrieval["top_k_each"]:
         raise ConfigError("retrieval.final_k must be between 1 and retrieval.top_k_each")
 

@@ -34,6 +34,9 @@ retrieval:
   final_k: 5               # chunks passed on after (optional) reranking
   version_filter: none     # none | current_only
   date_aware_rerank: false
+  small_to_big: false      # run 2b: search small pieces of each chunk, return the parent chunk
+  piece_size: 250          # tokens per searchable piece (small_to_big only)
+  piece_overlap: 25
 
 reranker:
   enabled: false

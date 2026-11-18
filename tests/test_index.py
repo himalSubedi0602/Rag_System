@@ -172,3 +172,31 @@ def test_ties_are_broken_by_hash_not_by_name_or_status():
     expected = sorted(["syn:old::c::0", "hb:new::c::0"], key=tie_break_key)
     assert [cid for cid, _ in ranked[1:]] == expected                    # ties: hash order
     assert rank_results(list(reversed(pairs))) == ranked                 # input order doesn't matter
+
+
+# --- small-to-big --------------------------------------------------------------------------------
+
+from src.index import build_piece_index, make_pieces, small_to_big_search  # noqa: E402
+
+S2B_CFG = {**CFG, "chunking": {**CFG["chunking"], "tokenizer": "sentence-transformers/all-MiniLM-L6-v2"},
+           "retrieval": {"small_to_big": True, "piece_size": 8, "piece_overlap": 2}}
+
+
+def test_make_pieces_split_chunks_and_point_to_parent():
+    long_chunk = make_chunk(7, " ".join(f"word{i}" for i in range(30)))
+    pieces = make_pieces([long_chunk], S2B_CFG)
+    assert len(pieces) > 1
+    assert all(p["parent_chunk_id"] == long_chunk["chunk_id"] for p in pieces)
+    assert all(p["text"] in long_chunk["text"] for p in pieces)           # no prefix: exact slices
+    assert pieces[0]["piece_id"].endswith("::p0")
+
+
+def test_small_to_big_returns_each_parent_once_by_best_piece(client):
+    chunks = [make_chunk(0, "zzzz zzzz zzzz zzzz zzzz zzzz zzzz zzzz zzzz zzzz aaaa aaaa"),
+              make_chunk(1, "bbbb bbbb bbbb bbbb bbbb bbbb bbbb bbbb bbbb bbbb bbbb bbbb")]
+    collection, built = build_piece_index(chunks, S2B_CFG, client, fake_embed)
+    assert built and collection.count() > 2
+    results = small_to_big_search(collection, fake_embed, "aaaa aaaa", k=2)
+    assert [cid for cid, _ in results] == [chunks[0]["chunk_id"], chunks[1]["chunk_id"]]  # parents, not pieces
+    _, rebuilt = build_piece_index(chunks, S2B_CFG, client, fake_embed)
+    assert not rebuilt                                                     # unchanged chunks -> reused
