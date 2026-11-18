@@ -33,7 +33,7 @@ MODEL_SHORT_NAMES = {
 ADD_BATCH = 500  # chunks per Chroma insert (Chroma caps the size of a single add)
 
 # Metadata fields copied from each chunk into Chroma ("text" is stored as the document instead).
-META_FIELDS = ("doc_id", "doc_title", "version_group", "is_current", "source_type", "source_path",
+META_FIELDS = ("doc_id", "doc_title", "version_group", "is_current", "version_status", "source_type", "source_path",
                "section_path", "page", "updated_date", "department", "access_roles", "content_hash",
                "chunk_strategy", "chunk_index", "token_count", "char_start", "char_end")
 
@@ -82,11 +82,17 @@ def collection_name(cfg: dict[str, Any]) -> str:
     return f"{strategy_key(cfg['chunking'])}__{model_short_name(cfg['embedding']['model'])}__{prefix}"
 
 
+# Metadata that filters and reranking depend on. If it changes (e.g. a page becomes superseded),
+# the stored metadata is stale even though the text is identical, so it must change the fingerprint.
+FINGERPRINT_META = ("is_current", "version_status", "version_group", "updated_date", "access_roles")
+
+
 def fingerprint(chunks: list[dict[str, Any]]) -> str:
-    """Hash of every chunk's id + content hash: changes if any chunk is added, removed or edited."""
+    """Hash of every chunk's id, content hash and filterable metadata: changes if any of them change."""
     digest = hashlib.sha256()
     for chunk in chunks:
-        digest.update(f"{chunk['chunk_id']}|{chunk['content_hash']}\n".encode())
+        meta = "|".join(str(chunk.get(field)) for field in FINGERPRINT_META)
+        digest.update(f"{chunk['chunk_id']}|{chunk['content_hash']}|{meta}\n".encode())
     return digest.hexdigest()
 
 
@@ -150,6 +156,20 @@ def build_vector_index(chunks: list[dict[str, Any]], cfg: dict[str, Any], client
     return collection, True
 
 
+def tie_break_key(chunk_id: str) -> str:
+    """Deterministic order for equal scores that ignores names and version status.
+
+    Sorting ties by chunk_id would favour "hb:..." over "syn:..." (alphabetical), and Chroma's own
+    order is insertion order (current docs were inserted first). A hash is stable but arbitrary.
+    """
+    return hashlib.sha256(chunk_id.encode()).hexdigest()
+
+
+def rank_results(pairs: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """Sort by score (rounded, so float noise can't decide) and break exact ties by tie_break_key."""
+    return sorted(pairs, key=lambda p: (-round(p[1], 6), tie_break_key(p[0])))
+
+
 def vector_search(collection: Any, embed_fn: EmbedFn, query: str, k: int,
                   where: dict[str, Any] | None = None) -> list[tuple[str, float]]:
     """Top-k chunks by cosine similarity to the query: [(chunk_id, similarity), ...], best first.
@@ -158,7 +178,7 @@ def vector_search(collection: Any, embed_fn: EmbedFn, query: str, k: int,
     """
     result = collection.query(query_embeddings=embed_fn([query]), n_results=k, where=where,
                               include=["distances"])
-    return [(cid, 1.0 - dist) for cid, dist in zip(result["ids"][0], result["distances"][0])]
+    return rank_results([(cid, 1.0 - dist) for cid, dist in zip(result["ids"][0], result["distances"][0])])
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +205,9 @@ class BM25Index:
         """
         scores = self.bm25.get_scores(bm25_tokenize(query))
         results = []
-        for i in np.argsort(-scores):  # indices from highest to lowest score
+        # highest score first; exact ties broken by the same version-blind rule as vector search
+        order = sorted(range(len(scores)), key=lambda i: (-round(float(scores[i]), 6), tie_break_key(self.chunk_ids[i])))
+        for i in order:
             if scores[i] <= 0 or len(results) == k:
                 break
             if allowed_ids is None or self.chunk_ids[i] in allowed_ids:

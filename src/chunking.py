@@ -245,6 +245,7 @@ def chunk_document(doc: dict[str, Any], chunking_cfg: dict[str, Any], tokenizer)
             "doc_title": doc["doc_title"],
             "version_group": doc["version_group"],
             "is_current": doc["is_current"],
+            "version_status": doc["version_status"],
             "source_type": doc["source_type"],
             "source_path": doc["source_path"],
             "section_path": section_path_at(headings, offsets[label][0]),

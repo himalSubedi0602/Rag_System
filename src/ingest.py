@@ -288,6 +288,7 @@ def build_record(src: SourceFile, extraction: dict[str, Any], content_hash: str,
         "version_group": explicit_group,      # filled in by assign_versions()
         "version_number": None,
         "is_current": explicit_current,       # filled in by assign_versions()
+        "version_status": None,               # filled in by assign_versions()
         "synthetic_old_version": synthetic,
         "content_hash": content_hash,
         "pages": extraction["pages"],
@@ -371,6 +372,16 @@ def assign_versions(records: list[dict[str, Any]]) -> None:
                                               m["version_number"] or 0,
                                               m["updated_date"] or ""))
             newest["is_current"] = True
+
+    # 4. Status, so old versions can be told apart from orphaned old documents:
+    #    current    = the live version
+    #    superseded = an old version of a page that still has a current version
+    #    legacy     = an old document with no current replacement (e.g. legacy agreements)
+    for members in groups.values():
+        has_current = any(m["is_current"] for m in members)
+        for m in members:
+            m["version_status"] = ("current" if m["is_current"]
+                                   else "superseded" if has_current else "legacy")
 
 
 # ---------------------------------------------------------------------------
@@ -466,8 +477,9 @@ def print_summary(stats: Counter[str], records: list[dict[str, Any]]) -> None:
     for r in records:
         multi[r["version_group"]].append(r)
     multi = {g: m for g, m in multi.items() if len(m) > 1}
-    print(f"Version groups with >1 document: {len(multi)}  "
-          f"(non-current docs: {sum(not r['is_current'] for r in records)})")
+    status = Counter(r["version_status"] for r in records)
+    print(f"Version groups with >1 document: {len(multi)}  (current {status['current']}, "
+          f"superseded {status['superseded']}, legacy {status['legacy']})")
     no_date = sum(r["updated_date"] is None for r in records)
     print(f"Docs without updated_date: {no_date}")
 
