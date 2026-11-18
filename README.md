@@ -48,9 +48,21 @@ pytest
 
 ### Data
 
-Raw documents are **not** committed to git. Download them into `data/raw/`:
+Raw documents are **not** committed to git. Every source is listed in
+[data/sources.yaml](data/sources.yaml); one command downloads them into `data/raw/`:
 
-_TODO (Phase 2): download sources and exact steps._
+```bash
+python -m src.download_data
+python -m src.ingest
+python -m src.inspect_docs --n 5
+```
+
+- **Handbook:** selected sections of the [GitLab public handbook](https://gitlab.com/gitlab-com/content-sites/handbook)
+  (people policies, total rewards, hiring, finance, legal, security policies, support licensing):
+  393 markdown files, each with its last-commit date from the GitLab API.
+- **PDFs:** 20 public policy documents from UK/NZ universities and councils (annual leave, sickness
+  absence, hybrid working, whistleblowing, travel and expenses, data protection, IT acceptable use).
+- Ingestion writes `data/processed/documents.jsonl` (380 documents after dropping 33 near-empty pages).
 
 ### Run an experiment
 
