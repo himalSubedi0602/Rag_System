@@ -18,8 +18,9 @@ import pandas as pd
 from src.config import load_config, resolve_path
 from src.evaluate import HEADLINE, bootstrap_ci
 
-PAIRED_METRICS = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_stale_exact", "fact_found", "stale"]
-LOWER_IS_BETTER = {"stale", "fact_stale", "fact_stale_exact"}
+PAIRED_METRICS = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "chunk_recall@30", "chunk_recall@100",
+                  "fact_stale", "fact_found", "stale", "fact_stale_t001", "fact_stale_t005", "fact_stale_t01"]
+LOWER_IS_BETTER = {"stale", "fact_stale", "fact_stale_t001", "fact_stale_t005", "fact_stale_t01"}
 SANITY_TYPES = {"history", "real_pair"}
 # Which questions each group contains (must match evaluate.aggregate):
 GROUPS = {
@@ -78,7 +79,9 @@ def paired(pq_a: pd.DataFrame, pq_b: pd.DataFrame, group: str = "overall") -> pd
         clusters = both["cluster_a"].to_numpy() if "cluster_a" in both else None
         sign = -1 if metric in LOWER_IS_BETTER else 1  # stale going down is an improvement
         lo, hi = paired_bootstrap(diff, clusters)
+        plain_lo, plain_hi = paired_bootstrap(diff, None)   # per-question interval, context only
         rows.append({"metric": metric, "questions": len(diff),
+                     "95% CI plain": f"[{plain_lo:.3f}, {plain_hi:.3f}]",
                      "clusters": len(set(clusters)) if clusters is not None else len(diff),
                      "better": int((sign * diff > 0).sum()), "worse": int((sign * diff < 0).sum()),
                      "same": int((diff == 0).sum()), "mean_diff (B-A)": round(float(diff.mean()), 3),

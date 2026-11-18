@@ -13,9 +13,10 @@ Conventions (all positions are CHUNK ranks in the retrieved list, 1 = best):
   stale       outdated_version only: an outdated version's first chunk ranks above the current
               gold doc's first chunk (or appears while the current one doesn't); stale@5 = top 5 only
   fact_stale  stricter: the chunk stating the OLD fact ranks above the chunk stating the CURRENT
-              fact (what the LLM would see first). For both, a score gap below TIE_TOLERANCE (0.005)
-              counts as a tie (0.5): such gaps come from wording and chunk-boundary noise. *_exact
-              columns use the old rule (only identical scores tie).
+              fact (what the LLM would see first). Both are decided by RANK for every run (Amendment
+              3b): exact score ties are already ordered by the chunk_id-hash tie-break, so all runs share
+              one scale. Secondary, cosine runs only: *_t001 / *_t005 / *_t01 treat score gaps below
+              that tolerance as a tie (0.5); empty for hybrid (RRF), reranker and two-stage runs.
               If NEITHER version was retrieved the question can't show staleness: stale = blank (not 0),
               and fact_found (share of questions where a fact chunk was retrieved) reports that miss
 Groups: "overall" = all answerable questions except the sanity checks (history, real_pair); "non_outdated"
@@ -40,11 +41,11 @@ SEPARATE_TYPES = {"history", "real_pair"}   # sanity checks: own rows, not part 
 # Headline metrics get 95% CIs. The version metric is fact_stale (on questions where a fact chunk was
 # found), always reported with fact_found; doc-level stale is secondary.
 HEADLINE = ["chunk_recall@5", "chunk_mrr", "doc_recall@5", "fact_stale", "fact_found", "stale"]
-STALE_COLS = ["stale", "stale@5", "fact_stale", "fact_stale@5", "fact_found", "stale_exact", "fact_stale_exact"]
+TOLERANCES = {"t001": 0.001, "t005": 0.005, "t01": 0.01}   # secondary, cosine runs only (Amendment 3b)
+STALE_COLS = (["stale", "stale@5", "fact_stale", "fact_stale@5", "fact_found"]
+              + [f"{m}_{k}" for k in TOLERANCES for m in ("stale", "fact_stale")])
 DIAGNOSTIC_COLS = ["chunk_recall@30", "chunk_recall@100"]
-TIE_TOLERANCE = 0.005        # score gaps below this are treated as ties (0.5): differences this small
-                             # come from wording/boundary noise, not from which version is more relevant
-EXACT_TIE = 1e-6             # the old rule (only identical scores tie), kept as *_exact columns
+TIE_TOLERANCE = 0.005        # cosine gaps below this are wording/boundary noise (secondary *_t005 columns)
 LOOSE_MIN_WORDS = 8       # quotes this long use loose matching
 LOOSE_SHARE = 0.8         # share of the quote's words that must appear in the chunk
 BOOTSTRAP_SAMPLES = 2000
@@ -167,14 +168,19 @@ def evaluate_question(question: dict[str, Any], ranked_ids: list[str],
                         for ok, c in zip(current_doc, ranked)]
         old_fact = [any(c["doc_id"] == e["doc_id"] and quote_matches(e["quote"], c["text"])
                         for e in question.get("outdated_evidence", [])) for c in ranked]
-        row["stale"] = stale_score(current_doc, old_doc, scores)
-        row["stale@5"] = stale_score(current_doc, old_doc, scores, within=5)
-        row["stale_exact"] = stale_score(current_doc, old_doc, scores, tolerance=EXACT_TIE)
+        # Primary: rank alone (scores=None). Secondary: tolerance ties, only when cosine scores are given.
+        row["stale"] = stale_score(current_doc, old_doc, None)
+        row["stale@5"] = stale_score(current_doc, old_doc, None, within=5)
+        if scores is not None:
+            for key, tol in TOLERANCES.items():
+                row[f"stale_{key}"] = stale_score(current_doc, old_doc, scores, tolerance=tol)
         if question.get("stale_level", "fact") == "fact":
-            row["fact_stale"] = stale_score(current_fact, old_fact, scores)
-            row["fact_stale@5"] = stale_score(current_fact, old_fact, scores, within=5)
+            row["fact_stale"] = stale_score(current_fact, old_fact, None)
+            row["fact_stale@5"] = stale_score(current_fact, old_fact, None, within=5)
             row["fact_found"] = float(any(current_fact) or any(old_fact))
-            row["fact_stale_exact"] = stale_score(current_fact, old_fact, scores, tolerance=EXACT_TIE)
+            if scores is not None:
+                for key, tol in TOLERANCES.items():
+                    row[f"fact_stale_{key}"] = stale_score(current_fact, old_fact, scores, tolerance=tol)
         # stale_level "doc" (e.g. rp-02: the old version has no competing fact): only doc-level stale
     return row
 

@@ -110,9 +110,9 @@ def test_aggregate_overall_and_by_type():
 # --- retrieve guard -------------------------------------------------------------------------
 
 def test_unsupported_settings_are_reported():
-    cfg = {"retrieval": {"mode": "hybrid", "version_filter": "none", "date_aware_rerank": False},
+    cfg = {"retrieval": {"mode": "hybrid", "version_filter": "current_only", "date_aware_rerank": True},
            "reranker": {"enabled": True}}
-    assert unsupported_settings(cfg) == ["retrieval.mode=hybrid", "reranker.enabled=true"]
+    assert unsupported_settings(cfg) == ["retrieval.version_filter=current_only", "retrieval.date_aware_rerank=true"]
 
 
 # --- matching rule: exact for short quotes, 80% of words for long ones ------------------------
@@ -215,8 +215,10 @@ def test_fact_stale_compares_the_fact_chunks_not_the_documents():
     q["outdated_evidence"] = [{"doc_id": "doc:old", "quote": "hotels are capped at $250 per night."}]
     row = evaluate_question(q, ["cur_intro", "old_intro", "old_fact", "cur_fact"], chunks, KS,
                             scores=[0.9, 0.9, 0.8, 0.7])
-    assert row["stale"] == 0.5          # the documents tie on their shared intro chunk
+    assert row["stale"] == 0.0          # rank: the current doc's intro chunk comes first
+    assert row["stale_t005"] == 0.5     # secondary (cosine): the documents tie on their shared intro chunk
     assert row["fact_stale"] == 1.0     # but the OLD fact is shown before the current fact
+    assert row["fact_stale_t005"] == 1.0
     assert row["fact_found"] == 1.0
 
 
@@ -241,10 +243,18 @@ def test_deep_chunk_recall_finds_answers_beyond_the_top_30():
 
 
 def test_tie_tolerance_treats_tiny_gaps_as_ties():
-    from src.evaluate import EXACT_TIE
     assert stale_score([False, True], [True, False], scores=[0.803, 0.800]) == 0.5            # gap 0.003 < 0.005
-    assert stale_score([False, True], [True, False], scores=[0.803, 0.800], tolerance=EXACT_TIE) == 1.0
+    assert stale_score([False, True], [True, False], scores=None) == 1.0                      # rank decides
     assert stale_score([False, True], [True, False], scores=[0.810, 0.800]) == 1.0            # gap 0.010: real
+
+
+def test_primary_stale_is_rank_only_and_tolerance_needs_scores():
+    q = question("outdated_version", outdated=("doc:old",))
+    no_scores = evaluate_question(q, ["old1", "b1"], CHUNKS, KS)                 # e.g. a reranker run
+    assert no_scores["stale"] == 1.0 and "stale_t005" not in no_scores
+    tied = evaluate_question(q, ["old1", "b1"], CHUNKS, KS, scores=[0.801, 0.800])  # cosine run
+    assert tied["stale"] == 1.0                     # primary: same rank scale as every other run
+    assert tied["stale_t005"] == 0.5                # secondary: a cosine near-tie
 
 
 def test_cluster_bootstrap_is_wider_when_questions_are_linked():

@@ -30,7 +30,7 @@ from src.chunking import EMBEDDING_MAX_TOKENS, count_tokens, get_tokenizer, inde
 from src.config import load_config, resolve_path
 from src.evaluate import HEADLINE, aggregate, deep_chunk_recall, evaluate_question, quote_matches, to_frame
 from src.index import IndexBundle, build_indexes, make_pieces
-from src.retrieve import retrieve, unsupported_settings
+from src.retrieve import retrieve, scores_are_similarities, unsupported_settings
 
 
 def load_questions(cfg: dict[str, Any], split: str) -> list[dict[str, Any]]:
@@ -64,6 +64,18 @@ def vector_index_mb(cfg: dict[str, Any], collection_names: list[str]) -> float:
     return round(size / 1e6, 1)
 
 
+def rerank_truncation(cfg: dict[str, Any], bundle: IndexBundle, questions: list[dict[str, Any]], tokenizer) -> float | None:
+    """For reranker / two-stage runs: % of chunks that, together with a median-length question and the
+    3 special tokens, exceed the cross-encoder's input limit (so their end is not read). None otherwise."""
+    if not (cfg["reranker"]["enabled"] or cfg["retrieval"]["two_stage"]):
+        return None
+    q_lens = sorted(count_tokens(q["question"], tokenizer) for q in questions)
+    q_len = q_lens[len(q_lens) // 2]
+    limit = cfg["reranker"]["max_length"] - 3 - q_len
+    chunk_lens = [count_tokens(c["text"], tokenizer) for c in bundle.chunks_by_id.values()]
+    return round(100 * sum(n > limit for n in chunk_lens) / len(chunk_lens), 1)
+
+
 def run_info(cfg: dict[str, Any], bundle: IndexBundle, rows: list[dict[str, Any]],
              questions: list[dict[str, Any]]) -> dict[str, Any]:
     """Run-level facts: chunks, how much text the embedding model can't see, quote reachability, speed."""
@@ -76,11 +88,13 @@ def run_info(cfg: dict[str, Any], bundle: IndexBundle, rows: list[dict[str, Any]
     trunc = truncation_stats(counts, EMBEDDING_MAX_TOKENS[cfg["embedding"]["model"]])
     return {"chunks": len(bundle.chunks_by_id), "embedded_units": len(counts),
             "quotes_reachable": quotes_reachable(questions, bundle),
+            "rerank_truncated_pct": rerank_truncation(cfg, bundle, questions, tokenizer),
             "vector_index_mb": vector_index_mb(cfg, [bundle.collection.name] +
                                                ([bundle.piece_collection.name] if bundle.piece_collection else [])),
             "chunks_truncated_pct": round(trunc["chunks_truncated_pct"], 1),
             "tokens_unseen_pct": round(trunc["tokens_unseen_pct"], 1),
             "mean_latency_ms": round(sum(r["latency_ms"] for r in rows) / len(rows), 1),
+            "tolerance_columns": "yes (cosine scores)" if scores_are_similarities(cfg) else "no (rank-only scores)",
             "questions": len(rows)}
 
 
@@ -97,7 +111,9 @@ def run(cfg: dict[str, Any], split: str) -> tuple[list[dict[str, Any]], list[dic
         ranked = retrieve(q["question"], bundle, cfg)
         latency_ms = 1000 * (time.perf_counter() - start)
         ids = [cid for cid, _ in ranked]
-        row = evaluate_question(q, ids, bundle.chunks_by_id, ks, scores=[score for _, score in ranked])
+        # Primary staleness is by rank for every run; tolerance columns are added only for cosine scores.
+        tie_scores = [score for _, score in ranked] if scores_are_similarities(cfg) else None
+        row = evaluate_question(q, ids, bundle.chunks_by_id, ks, scores=tie_scores)
         if q["question_type"] != "no_answer":
             # Diagnostic only: a deeper candidate list (top 100). The official metrics above use `ranked`.
             deep_ids = [cid for cid, _ in retrieve(q["question"], bundle, deep_cfg)]
@@ -175,7 +191,7 @@ def write_summary(path: Path, cfg: dict[str, Any], split: str, table: pd.DataFra
             lines.append(f"| {x['id']} | {x['question_type']} | {x.get('gold_doc_rank') or 'not found'} | "
                          f"{top1} | {x['question']} |")
     lines += ["", "## Outdated-version questions", "",
-              "stale / fact_stale: 1 = old version first, 0.5 = exact score tie, 0 = current first, "
+              "stale / fact_stale (by rank): 1 = old version first, 0 = current first, "
               "blank = neither version retrieved.", "",
               "| id | first current doc rank | first old doc rank | stale | fact_stale |", "|---|---|---|---|---|"]
     for x in log:
