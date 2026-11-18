@@ -55,6 +55,7 @@ Raw documents are **not** committed to git. Every source is listed in
 python -m src.download_data
 python -m src.ingest
 python -m src.inspect_docs --n 5
+python -m src.chunking configs/baseline.yaml
 ```
 
 - **Handbook:** selected sections of the [GitLab public handbook](https://gitlab.com/gitlab-com/content-sites/handbook)

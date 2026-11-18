@@ -57,3 +57,31 @@ One entry per phase: what was built, key decisions, results so far.
 - 11 version groups with real old versions (e.g. testing agreement v1-v5 + current, AI terms v1-v4 +
   current, 2 PDF pairs); 28 non-current documents. All documents have an `updated_date`.
 - Second ingest run: 413/413 files skipped as unchanged.
+
+## Phase 3: Chunking (2026-11-17)
+
+**Built**
+- `src/chunking.py`: fixed-size and heading-based chunking, title/section prefix (`index_text`),
+  truncation report. Writes `data/processed/chunks/<strategy_key>.jsonl`.
+- `tests/test_chunking.py`: 14 tests (41 total in the repo).
+
+**Key decisions**
+- **Tokens are counted with one fixed tokenizer** (MiniLM's BERT tokenizer, `chunking.tokenizer`), so
+  run 5 (bge-small vs MiniLM) changes only the embedding model, not the chunk boundaries.
+  Both models share the same 30,522-word vocabulary anyway.
+- **Chunk text is cut from the original string** using the tokenizer's character offsets, not decoded
+  from tokens (decoding would lower-case and re-space it). Window edges snap to word boundaries.
+- **Heading strategy:** one chunk per markdown section; sections < 50 tokens merge into the next one (and
+  the chunk is named after that section); sections > chunk_size are split with the fixed window.
+  Headings inside ``` code blocks are ignored. PDFs have no reliable headings -> fixed window.
+- **Prefix is applied at index time** (`index_text`), not stored in `text`, so one chunk file serves both
+  run 1 and run 4, and the LLM / UI always see clean text.
+- **Extra chunk fields:** `char_start`/`char_end` (position in the document) so Phase 6 can match retrieved
+  chunks to gold evidence under any chunking strategy; also `token_count`, `chunk_index`.
+
+**Results so far**
+- Baseline (fixed 500/50): 2,314 chunks from 380 docs (2,117 markdown, 197 PDF), median 500 tokens.
+- **Truncation finding:** MiniLM reads only 256 tokens (254 of text). With 500-token chunks,
+  92.6% of chunks are cut off and 46.6% of all chunk tokens are never embedded.
+  For comparison: heading-based 25.5% unseen; 250-token chunks 0%; bge-small (512 limit) 0%;
+  the prefix makes it slightly worse (48.1%) because it adds ~12 tokens in front.
