@@ -226,7 +226,7 @@ Every quote below was checked automatically against the ingested corpus by `pyth
 
 ## pp-02 (paraphrase, tune)
 
-**Q:** If GitLab pays for my co-working desk for a whole month, can I still claim my home internet?
+**Q:** If the company covers a shared office desk for me all month, can I also get my broadband at home paid for?
 
 **Expected:** No; with a full month of co-working, home internet cannot be expensed (a few co-working days still allows it).
 
@@ -1336,3 +1336,653 @@ Every quote below was checked automatically against the ingested corpus by `pyth
 
 - /study leave/ in pdf:roehampton: 0 matches
 - closest BM25 hits (not answers): pdf:middlesex-annual-leave (29.2); pdf:middlesex-annual-leave (29.1); pdf:roehampton-whistleblowing (27.2)
+
+## lk-26 (lookup, tune)
+
+**Q:** Which TLS version must be enabled and preferred in new GitLab deployments?
+
+**Expected:** TLS 1.3.
+
+- `hb:security/policies_and_standards/cryptographic-standard`
+  > TLS 1.3 must be enabled and preferred in all new deployments.
+  - gold chunks: hb:security/policies_and_standards/cryptographic-standard::fixed-500-50::2
+
+## lk-27 (lookup, tune)
+
+**Q:** How long must GitLab keep security logs for production systems?
+
+**Expected:** At least 1 year.
+
+- `hb:security/policies_and_standards/security-logging-standard`
+  > Security logs for production systems | 1 year minimum
+  - gold chunks: hb:security/policies_and_standards/security-logging-standard::fixed-500-50::2
+
+## lk-28 (lookup, tune)
+
+**Q:** How long are security logs kept for GitLab's critical systems that are not production?
+
+**Expected:** At least 90 days.
+
+- `hb:security/policies_and_standards/security-logging-standard`
+  > Security logs for critical systems that are not production | 90 days minimum
+  - gold chunks: hb:security/policies_and_standards/security-logging-standard::fixed-500-50::2
+
+## lk-29 (lookup, tune)
+
+**Q:** How often does GitLab have a third-party penetration test carried out?
+
+**Expected:** At least annually.
+
+- `hb:security/security-and-technology-policies/penetration-testing-policy`
+  > A third-party penetration test is conducted at least annually.
+  - gold chunks: hb:security/security-and-technology-policies/penetration-testing-policy::fixed-500-50::0
+
+## lk-30 (lookup, tune)
+
+**Q:** My request for an exception to a GitLab security policy was turned down. Where do I send an appeal?
+
+**Expected:** To Legal, at legal@gitlab.com.
+
+- `hb:security/security-and-technology-policy-exception`
+  > If the business wants to appeal an approval decision, such appeal will be sent to Legal at legal@gitlab.com.
+  - gold chunks: hb:security/security-and-technology-policy-exception::fixed-500-50::0
+
+## lk-31 (lookup, tune)
+
+**Q:** In GitLab's observation management procedure, which score is used when the audit impact and remediation effort scores differ?
+
+**Expected:** The higher of the two scores.
+
+- `hb:security/security-assurance/observation-management-procedure`
+  > When audit impact and remediation effort scores differ, use the higher score to ensure adequate attention and resources.
+  - gold chunks: hb:security/security-assurance/observation-management-procedure::fixed-500-50::2
+
+## lk-32 (lookup, tune)
+
+**Q:** What happens when an emergency ticket comes in to GitLab Support?
+
+**Expected:** It triggers a PagerDuty incident.
+
+- `hb:support/channels`
+  > When an emergency ticket comes in, it triggers a PagerDuty incident.
+  - gold chunks: hb:support/channels::fixed-500-50::0
+
+## lk-33 (lookup, tune)
+
+**Q:** I've been on an emergency customer ticket for over an hour and two colleagues have joined in. What should I set up?
+
+**Expected:** A Google Doc open to the customer and the wider team, to keep track of the work.
+
+- `hb:support/channels`
+  > If an emergency takes longer than an hour to resolve, and/or multiple people are or need to be involved, start a Google Doc
+  - gold chunks: hb:support/channels::fixed-500-50::0
+
+## lk-34 (lookup, tune)
+
+**Q:** How much does GitLab match on the Group RRSP for team members in Canada?
+
+**Expected:** Up to 3% of base salary.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/canada-corp-benefits`
+  > Employer matching up to 3% of base salary
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/canada-corp-benefits::fixed-500-50::0
+
+## lk-35 (lookup, tune)
+
+**Q:** What superannuation rate does GitLab pay for team members in Australia?
+
+**Expected:** 12% of total salary (from July 1, 2025).
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-australia`
+  > Rate: 12% of your total salary (effective July 1, 2025)
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-australia::fixed-500-50::2
+
+## lk-36 (lookup, tune)
+
+**Q:** I work for GitLab's Netherlands entity and will be off sick for several months. What pay will I get?
+
+**Expected:** 70% of salary for up to 104 weeks.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-netherlands`
+  > Team members who are unable to work due to illness are entitled to 70% of their salary for up to 104 weeks.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-netherlands::fixed-500-50::1
+
+## lk-37 (lookup, tune)
+
+**Q:** What is the pension contribution rate for GitLab BV team members in the Netherlands?
+
+**Expected:** A 5% flat rate of the pension base (defined contribution).
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-netherlands`
+  > Defined Contribution Agreement with 5% flat rate of pension base
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-netherlands::fixed-500-50::2
+
+## lk-38 (lookup, tune)
+
+**Q:** What co-payment do GitLab Japan team members pay for medical care?
+
+**Expected:** 30%.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/gitlab-gk`
+  > standardized 30% co-payment
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/gitlab-gk::fixed-500-50::0
+
+## lk-39 (lookup, tune)
+
+**Q:** I just got married and I work for GitLab Korea. How long do I have to add my spouse to my insurance?
+
+**Expected:** Within 30 days of the qualifying event.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/korea-ltd-benefits`
+  > Add dependents within 30 days of qualifying events (birth, marriage)
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/korea-ltd-benefits::fixed-500-50::0
+
+## lk-40 (lookup, tune)
+
+**Q:** At what market level does GitLab set its base salary ranges?
+
+**Expected:** At or above the 50th percentile of the software industry.
+
+- `hb:total-rewards/compensation`
+  > targeting compensation at or above the 50th percentile of the software industry
+  - gold chunks: hb:total-rewards/compensation::fixed-500-50::0
+
+## lk-41 (lookup, tune)
+
+**Q:** How often is the bonus paid for GitLab directors and above?
+
+**Expected:** Twice per year (semi-annually), based on company performance.
+
+- `hb:total-rewards/compensation`
+  > paid twice per year (semi-annually) based on company performance
+  - gold chunks: hb:total-rewards/compensation::fixed-500-50::0
+
+## lk-42 (lookup, tune)
+
+**Q:** Above what annual spend does GitLab procurement apply division alignment?
+
+**Expected:** Spend over $25k USD per year.
+
+- `hb:finance/procurement`
+  > Division alignment for spend over >$25k USD / year
+  - gold chunks: hb:finance/procurement::fixed-500-50::0
+
+## lk-43 (lookup, tune)
+
+**Q:** I just paid a vendor with my Navan purchasing card. How long do I have to upload the receipt?
+
+**Expected:** Within 30 days of the transaction date.
+
+- `hb:finance/accounts-payable/corp-credit-cards`
+  > Receipts must be uploaded into Navan within 30 days of the transaction date.
+  - gold chunks: hb:finance/accounts-payable/corp-credit-cards::fixed-500-50::0
+
+## lk-44 (lookup, tune)
+
+**Q:** On which day of the week does GitLab Accounts Payable do payment runs?
+
+**Expected:** Thursdays (except month-end closing week and big holidays).
+
+- `hb:finance/accounts-payable`
+  > Payment Runs are completed on Thursdays
+  - gold chunks: hb:finance/accounts-payable::fixed-500-50::0
+
+## lk-45 (lookup, tune)
+
+**Q:** Our supplier only accepts paper cheques. Can GitLab Accounts Payable send one?
+
+**Expected:** No. AP pays via NetSuite electronic payments, ACH or wire only and does not issue checks.
+
+- `hb:finance/accounts-payable`
+  > AP does not issue check payments.
+  - gold chunks: hb:finance/accounts-payable::fixed-500-50::1
+
+## lk-46 (lookup, tune)
+
+**Q:** What monthly occupational allowance do GitLab France team members receive for remote work?
+
+**Expected:** €50 gross per month.
+
+- `hb:people-policies/france-sas/remote-work-charter`
+  > the team member will receive a monthly occupational allowance (indemnité de sujétion) of €50 gross
+  - gold chunks: hb:people-policies/france-sas/remote-work-charter::fixed-500-50::13
+
+## lk-47 (lookup, tune)
+
+**Q:** At the University of St Andrews, what happens to annual leave carried forward from the previous year if it isn't used by 31 December?
+
+**Expected:** It is lost.
+
+- `pdf:st-andrews-annual-leave`
+  > Any annual leave carried forward from the previous annual leave year not used by the 31 December will be lost.
+  - gold chunks: pdf:st-andrews-annual-leave::fixed-500-50::0, pdf:st-andrews-annual-leave::fixed-500-50::1
+
+## lk-48 (lookup, tune)
+
+**Q:** How many days of sickness can South Oxfordshire and Vale of White Horse council employees self-certify?
+
+**Expected:** The first 7 calendar days, including weekends.
+
+- `pdf:south-oxon-sickness-absence`
+  > covers the first 7 calendar days (including weekends) of the period of absence.
+  - gold chunks: pdf:south-oxon-sickness-absence::fixed-500-50::1
+
+## lk-49 (lookup, tune)
+
+**Q:** How quickly should a University of Salford whistleblowing investigation be completed?
+
+**Expected:** Within 20 working days, where reasonably practicable.
+
+- `pdf:salford-whistleblowing`
+  > Where reasonably practicable the investigation should be completed within 20 working days.
+  - gold chunks: pdf:salford-whistleblowing::fixed-500-50::4
+
+## lk-50 (lookup, tune)
+
+**Q:** I'm stepping away from my desk at Luton Council for a few minutes. What should I do with my computer?
+
+**Expected:** Lock it (Windows key + L).
+
+- `pdf:luton-it-acceptable-use`
+  > Lock your device when you leave your workstation (Windows Key + L)
+  - gold chunks: pdf:luton-it-acceptable-use::fixed-500-50::2
+
+## pp-16 (paraphrase, tune)
+
+**Q:** I'd love to work from home full time at Queen Mary University of London. Is that likely to be approved?
+
+**Expected:** Very rarely; a minimum weekly time on campus is the expected norm.
+
+- `pdf:qmul-hybrid-working`
+  > Queen Mary will very rarely support fully remote working
+  - gold chunks: pdf:qmul-hybrid-working::fixed-500-50::3
+
+## pp-17 (paraphrase, tune)
+
+**Q:** If Queen Mary University of London asks me to come on site on a day I'd planned to stay home, how much warning should I get?
+
+**Expected:** Two days' notice, as far as reasonably possible.
+
+- `pdf:qmul-hybrid-working`
+  > the University will provide two days' notice of any such requests
+  - gold chunks: pdf:qmul-hybrid-working::fixed-500-50::4
+
+## pp-18 (paraphrase, tune)
+
+**Q:** Is it fine for me to message a teammate at GitLab Ireland late in the evening as a matter of habit?
+
+**Expected:** No. Be mindful of colleagues' working hours: don't routinely Slack, email or call outside regular working hours.
+
+- `hb:people-policies/ireland-ltd/right-to-disconnect-policy`
+  > be mindful of colleagues' and customers' or clients' working hours (do not routinely slack, email or call outside regular working hours)
+  - gold chunks: hb:people-policies/ireland-ltd/right-to-disconnect-policy::fixed-500-50::2
+
+## pp-19 (paraphrase, tune)
+
+**Q:** Working remotely for GitLab France, what's the shortest break I must have between finishing one day and starting the next?
+
+**Expected:** 11 consecutive hours.
+
+- `hb:people-policies/france-sas/remote-work-charter`
+  > minimum rest periods (11 consecutive hours between 2 working days
+  - gold chunks: hb:people-policies/france-sas/remote-work-charter::fixed-500-50::10, hb:people-policies/france-sas/remote-work-charter::fixed-500-50::11
+
+## pp-20 (paraphrase, tune)
+
+**Q:** Is it acceptable for a fresh GitLab deployment to support only the previous encryption-protocol version?
+
+**Expected:** No. TLS 1.2 may stay enabled for legacy interoperability, but it must not be the only one supported.
+
+- `hb:security/policies_and_standards/cryptographic-standard`
+  > TLS 1.2 MAY remain enabled for legacy interoperability
+  - gold chunks: hb:security/policies_and_standards/cryptographic-standard::fixed-500-50::2
+
+## pp-21 (paraphrase, tune)
+
+**Q:** I'm joining GitLab in Canada. Will I pay anything for my health insurance?
+
+**Expected:** No, coverage through ManuLife comes at no cost to you.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/canada-corp-benefits`
+  > Comprehensive health coverage through ManuLife with no cost to you.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/canada-corp-benefits::fixed-500-50::0
+
+## pp-22 (paraphrase, tune)
+
+**Q:** Will GitLab top up my retirement savings in Singapore beyond the government scheme?
+
+**Expected:** No. GitLab doesn't offer a supplementary private pension; the CPF system covers retirement.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/singapore-pte-ltd`
+  > While GitLab doesn't offer supplementary private pension benefits, the CPF system ensures your long-term financial wellbeing.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/singapore-pte-ltd::fixed-500-50::2
+
+## pp-23 (paraphrase, tune)
+
+**Q:** Who pays the group insurance bill for GitLab staff in Korea?
+
+**Expected:** GitLab pays 100% of all premiums.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/korea-ltd-benefits`
+  > Zero Premium Cost: GitLab pays 100% of all premiums
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/korea-ltd-benefits::fixed-500-50::0
+
+## pp-24 (paraphrase, tune)
+
+**Q:** Which appraisal result lets me put myself forward for a different position within GitLab?
+
+**Expected:** Performing or Exceeding in the Talent Assessment.
+
+- `hb:hiring/talent-acquisition-framework/internal-hiring-process`
+  > Team members who are assessed at a Performing or Exceeding Performance level during Talent Assessment are eligible to be considered for another role
+  - gold chunks: hb:hiring/talent-acquisition-framework/internal-hiring-process::fixed-500-50::0, hb:hiring/talent-acquisition-framework/internal-hiring-process::fixed-500-50::4
+
+## pp-25 (paraphrase, tune)
+
+**Q:** Before putting in for a role on another team at GitLab, who should I talk to first?
+
+**Expected:** Your current manager.
+
+- `hb:hiring/talent-acquisition-framework/internal-hiring-process`
+  > Meet with your current manager to discuss the internal opportunity you'd like to pursue prior to submitting your application.
+  - gold chunks: hb:hiring/talent-acquisition-framework/internal-hiring-process::fixed-500-50::0
+
+## pp-26 (paraphrase, tune)
+
+**Q:** I want to buy a $7,000 tool with my Navan card. Is that okay?
+
+**Expected:** No. Purchases over $5,000 need a Purchase Requisition in Zip.
+
+- `hb:finance/accounts-payable/corp-credit-cards`
+  > If your purchase will be over $5,000 USD, you will need to enter a Purchase Requisition in Zip.
+  - gold chunks: hb:finance/accounts-payable/corp-credit-cards::fixed-500-50::1
+
+## pp-27 (paraphrase, tune)
+
+**Q:** Someone outside GitLab is funding my journey. Am I allowed to add some holiday time afterwards?
+
+**Expected:** Yes, you may stay longer, but the extra days aren't covered by the company or the customer.
+
+- `hb:finance/travel/sponsored`
+  > It is OK to stay longer on your trip. However, the extra days will not be covered by the company or customer.
+  - gold chunks: hb:finance/travel/sponsored::fixed-500-50::1
+
+## pp-28 (paraphrase, tune)
+
+**Q:** Will University of Salford staff who report wrongdoing have their name kept secret?
+
+**Expected:** Yes, they can stay anonymous unless they agree otherwise.
+
+- `pdf:salford-whistleblowing`
+  > Any individual making a disclosure can retain their anonymity unless they agree otherwise.
+  - gold chunks: pdf:salford-whistleblowing::fixed-500-50::4
+
+## pp-29 (paraphrase, tune)
+
+**Q:** Can my family doctor charge me for paperwork proving I'm ill if I'm away from work longer than a week at South Oxfordshire and Vale of White Horse District Councils?
+
+**Expected:** They shouldn't: a GP should not charge for a fit note when you're off sick for more than 7 days.
+
+- `pdf:south-oxon-sickness-absence`
+  > Your GP should not charge you for a fit note if you're off sick from work for more than 7 days
+  - gold chunks: pdf:south-oxon-sickness-absence::fixed-500-50::1, pdf:south-oxon-sickness-absence::fixed-500-50::2
+
+## pp-30 (paraphrase, tune)
+
+**Q:** I'm working from a café. How should I handle my GitLab laptop?
+
+**Expected:** Don't leave it unattended in public areas, and lock it when not in use.
+
+- `hb:security/policies_and_standards/physical-security-standard-for-company-assets`
+  > Ensure devices are not left unattended in public areas and are locked when not in use.
+  - gold chunks: hb:security/policies_and_standards/physical-security-standard-for-company-assets::fixed-500-50::0
+
+## pp-31 (paraphrase, tune)
+
+**Q:** Do I need a PIN on my own phone if I use it for GitLab work?
+
+**Expected:** Yes, personal mobile phones and tablets must be passcode protected.
+
+- `hb:security/policies_and_standards/physical-security-standard-for-company-assets`
+  > Personal mobile phone and tablet usage must be passcode protected.
+  - gold chunks: hb:security/policies_and_standards/physical-security-standard-for-company-assets::fixed-500-50::0, hb:security/policies_and_standards/physical-security-standard-for-company-assets::fixed-500-50::1
+
+## pp-32 (paraphrase, tune)
+
+**Q:** Does GitLab give staff in Belgium anything each year towards environmentally friendly purchases?
+
+**Expected:** Yes, electronic eco-vouchers worth up to €250 a year for ecological products and services.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium`
+  > Annual electronic vouchers up to €250 for ecological products and services.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium::fixed-500-50::0
+
+## pp-33 (paraphrase, tune)
+
+**Q:** Where must the sign-off for a GitLab security policy exception be recorded?
+
+**Expected:** In the associated exception request issue, with all approval sections filled in.
+
+- `hb:security/security-and-technology-policy-exception`
+  > Be captured in the associated exception request issue.
+  - gold chunks: hb:security/security-and-technology-policy-exception::fixed-500-50::0
+
+## pp-34 (paraphrase, tune)
+
+**Q:** A supplier is chasing an overdue invoice and I flagged it as urgent. When will GitLab actually pay it?
+
+**Expected:** In the next available payment run, provided the invoice is fully approved.
+
+- `hb:finance/accounts-payable`
+  > Any "Urgent Payment" requests will be paid in the next available payment run
+  - gold chunks: hb:finance/accounts-payable::fixed-500-50::0, hb:finance/accounts-payable::fixed-500-50::1
+
+## pp-35 (paraphrase, tune)
+
+**Q:** What hospital extras cover options can GitLab staff in Australia pick?
+
+**Expected:** Corporate Extras at 60%, 70%, 80% or 90% coverage levels.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-australia`
+  > Corporate Extras: Choose from 60%, 70%, 80%, or 90% coverage levels
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-australia::fixed-500-50::0
+
+## md-11 (multi_doc, tune)
+
+**Q:** I'm moving from GitLab's UK entity to GitLab Ireland. How much of my family members' private medical costs will GitLab cover in each?
+
+**Expected:** UK: 66% of family members' costs; Ireland: 100% of premiums for eligible dependents.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk`
+  > you can add family members with GitLab covering 66% of their costs
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd`
+  > We cover 100% of the premiums for you and your eligible dependents.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd::fixed-500-50::0
+- same answer in other version(s), acceptable: syn:ltd-benefits-uk-2023
+
+## md-12 (compound, tune)
+
+**Q:** How long must a GitLab team member be in their current role before moving internally, and how long must coverage be needed for an interim management bonus?
+
+**Expected:** 6 months in the current role; the interim need must last longer than 30 days.
+
+- `hb:hiring/talent-acquisition-framework/internal-hiring-process`
+  > Time in role eligibility will be 6 months in current role.
+  - gold chunks: hb:hiring/talent-acquisition-framework/internal-hiring-process::fixed-500-50::0, hb:hiring/talent-acquisition-framework/internal-hiring-process::fixed-500-50::4
+- `hb:total-rewards/incentives`
+  > For an interim role to be considered, the need for coverage would need to be longer than a 30 day time period.
+  - gold chunks: hb:total-rewards/incentives::fixed-500-50::0
+
+## md-13 (compound, tune)
+
+**Q:** How far ahead is GitLab Support's on-call schedule available, and when should an engineer hold a catch-up session with their time-off buddy after returning?
+
+**Expected:** Current month plus 3 months ahead; the catch-up session 1-2 days after returning.
+
+- `hb:support/on-call`
+  > The schedule will always be available for current month + 3 months ahead.
+  - gold chunks: hb:support/on-call::fixed-500-50::4
+- `hb:support/support-time-off-buddies`
+  > Set up a "catch-up" pairing session with your buddy 1-2 days after your return
+  - gold chunks: hb:support/support-time-off-buddies::fixed-500-50::1
+- same answer in other version(s), acceptable: syn:support-on-call-2023
+
+## md-14 (compound, tune)
+
+**Q:** How much notice does GitLab Support aim to give for on-call shift changes, and how quickly should St Mary's University respond to an annual leave request?
+
+**Expected:** GitLab Support: at least 4 weeks' notice; St Mary's: normally within a maximum of 5 working days.
+
+- `hb:support/on-call`
+  > Typically, we would aim to give a minimum of 4 weeks notice of shift changes
+  - gold chunks: hb:support/on-call::fixed-500-50::3
+- `pdf:st-marys-annual-leave-2014`
+  > Requests for annual leave will be responded to promptly and normally within a maximum of 5 working days.
+  - gold chunks: pdf:st-marys-annual-leave-2014::fixed-500-50::0
+- same answer in other version(s), acceptable: syn:support-on-call-2023
+
+## md-15 (compound, tune)
+
+**Q:** When do GitLab's Q4-cycle promotions take effect, and what bonus does a salaried team member get for an interim management role?
+
+**Expected:** Q4 promotions take effect November 1; the interim bonus is an extra 10% of salary for the interim period.
+
+- `hb:total-rewards/compensation`
+  > Q4 Cycle: Promotions effective November 1
+  - gold chunks: hb:total-rewards/compensation::fixed-500-50::2
+- `hb:total-rewards/incentives`
+  > your bonus will be an additional 10% of your salary for the duration of the interim role period
+  - gold chunks: hb:total-rewards/incentives::fixed-500-50::0
+
+## md-16 (multi_doc, tune)
+
+**Q:** How does GitLab fund team members' own health cover in Belgium compared with New Zealand?
+
+**Expected:** Belgium: a monthly healthcare allowance of €70; New Zealand: GitLab pays 100% of team member costs.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium`
+  > Monthly healthcare allowance of €70 providing flexibility to choose your own healthcare plan.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand`
+  > GitLab contribution: 100% of team member costs
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand::fixed-500-50::0
+
+## md-17 (multi_doc, tune)
+
+**Q:** What extra charge applies in Ireland to people who first take out private health insurance at 35 or older, and what outpatient excess applies on GitLab's UK medical plan?
+
+**Expected:** Ireland: an extra 2% for each year aged 35 and over; UK: a £100 outpatient excess per member per plan year.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd`
+  > you will pay an additional amount of 2% for each year that you are aged 35 and over
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk`
+  > Full outpatient cover with £100 excess per member per plan year.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk::fixed-500-50::0
+- same answer in other version(s), acceptable: syn:ltd-benefits-uk-2023
+
+## md-18 (multi_doc, tune)
+
+**Q:** Within what time must New Zealand team members enrol to get immediate pre-existing condition cover, and what is the monthly enrolment deadline for GitLab's UK medical plan?
+
+**Expected:** New Zealand: within 90 days of the start date; UK: the 24th of each month, for cover starting the following month.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand`
+  > Immediate pre-existing condition cover only within 90 days of your start date
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk`
+  > Enrollment deadline: 24th of each month for coverage starting the following month
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk::fixed-500-50::1
+- same answer in other version(s), acceptable: syn:ltd-benefits-uk-2023
+
+## md-19 (multi_doc, tune)
+
+**Q:** When does Middlesex University's annual leave year run, and how many unused days can St Mary's staff normally carry forward?
+
+**Expected:** Middlesex: 1 September to 31 August; St Mary's: up to 5 days, with the line manager's approval.
+
+- `pdf:middlesex-annual-leave`
+  > The annual leave year runs from 1 September – 31 August.
+  - gold chunks: pdf:middlesex-annual-leave::fixed-500-50::0
+- `pdf:st-marys-annual-leave-2014`
+  > Staff members may carry forward up to 5 days unused leave to the next year with their line manager's approval.
+  - gold chunks: pdf:st-marys-annual-leave-2014::fixed-500-50::0
+
+## md-20 (multi_doc, tune)
+
+**Q:** How often are Queen Mary University of London's hybrid working policy and North Lanarkshire Council's IT acceptable use policy reviewed?
+
+**Expected:** QMUL: every 3 years (interim review after 12 months); North Lanarkshire: every two years.
+
+- `pdf:qmul-hybrid-working`
+  > Review Frequency: Every 3 years (interim review after 12 months)
+  - gold chunks: pdf:qmul-hybrid-working::fixed-500-50::0
+- `pdf:north-lanarkshire-it-acceptable-use-v5`
+  > Two-yearly review and plain English
+  - gold chunks: pdf:north-lanarkshire-it-acceptable-use-v5::fixed-500-50::0
+
+## md-21 (compound, tune)
+
+**Q:** How long does the University of Roehampton aim to take over an external whistleblowing investigation, and within what time must pay-discrimination complaints be filed under GitLab Inc's US notices?
+
+**Expected:** Roehampton: within 3 months of the disclosure; US pay-discrimination complaints: within 180 days of the alleged discrimination.
+
+- `pdf:roehampton-whistleblowing`
+  > the University will endeavour to conclude the investigation within 3 months of the disclosure being made.
+  - gold chunks: pdf:roehampton-whistleblowing::fixed-500-50::3
+- `hb:people-policies/inc-usa`
+  > must be fled within 180 days from the date of the alleged discrimination
+  - gold chunks: hb:people-policies/inc-usa::fixed-500-50::8
+
+## md-22 (multi_doc, tune)
+
+**Q:** At Lancaster City Council, how early must a sick employee phone their manager on the first day, and what happens at South Oxfordshire and Vale of White Horse councils if sickness spoils a holiday?
+
+**Expected:** Lancaster: at least 30 minutes before their normal start time; South Oxon: it can be recorded as sickness and the holiday days given back, if certified by a doctor.
+
+- `pdf:lancaster-sickness-absence`
+  > the employee should telephone their line manager at least 30 minutes before their normal start time
+  - gold chunks: pdf:lancaster-sickness-absence::fixed-500-50::1
+- `pdf:south-oxon-sickness-absence`
+  > the absence may be recorded as sickness with holiday days lost being given back to the employee, provided it is certified by a doctor.
+  - gold chunks: pdf:south-oxon-sickness-absence::fixed-500-50::2
+
+## md-23 (compound, tune)
+
+**Q:** What automatic wage adjustment applies to GitLab team members in Belgium, and what KiwiSaver contribution does GitLab make in New Zealand?
+
+**Expected:** Belgium: wages rise by 2% when the smoothed health index reaches pivot numbers; New Zealand: 3% of base salary, on top of salary.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium`
+  > Wages automatically adjust by 2% when the smoothed health index reaches pivot numbers to maintain purchasing power.
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand`
+  > Rate: 3% of your base salary (paid on top of your salary)
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand::fixed-500-50::1
+
+## md-24 (multi_doc, tune)
+
+**Q:** Up to what age are children covered on GitLab Ireland's private medical plan, and what share of dependants' premiums does GitLab pay in France?
+
+**Expected:** Ireland: children up to age 21 if enrolled in school; France: GitLab pays 66% of dependent premiums.
+
+- `hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd`
+  > Children up to age 21 (if enrolled in school).
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd::fixed-500-50::0
+- `hb:total-rewards/benefits/general-and-entity-benefits/france-sas`
+  > 66% employer contribution for dependent premiums
+  - gold chunks: hb:total-rewards/benefits/general-and-entity-benefits/france-sas::fixed-500-50::0
+
+## md-25 (compound, tune)
+
+**Q:** Over what period is sick-pay entitlement assessed at Lancaster City Council, and how much leave can St Mary's staff carry forward in exceptional circumstances?
+
+**Expected:** Lancaster: a rolling 12 months from the start of the most recent absence; St Mary's: up to 10 days, agreed in advance with the line manager and a Vice-Principal.
+
+- `pdf:lancaster-sickness-absence`
+  > the last 12- month period from the start date of the most recent absence
+  - gold chunks: pdf:lancaster-sickness-absence::fixed-500-50::1, pdf:lancaster-sickness-absence::fixed-500-50::2
+- `pdf:st-marys-annual-leave-2014`
+  > staff members may carry forward up to 10 days leave with the approval of their line manager
+  - gold chunks: pdf:st-marys-annual-leave-2014::fixed-500-50::0

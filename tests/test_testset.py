@@ -170,3 +170,14 @@ def test_real_pair_uses_old_evidence_and_acceptable_versions():
     assert built[0]["outdated_doc_ids"] == ["hb:ta-v1"]           # states a different rule
     assert built[0]["acceptable_doc_ids"] == ["hb:ta-v5"]         # same rule as current
     assert built[0]["outdated_evidence"] == [{"doc_id": "hb:ta-v1", "quote": "customer will provide feedback"}]
+
+
+def test_same_fact_rule():
+    from src.testset import same_fact
+    d = "hb:logging"
+    assert same_fact(d, "Security logs for production systems | 1 year minimum", d, "production systems | 1 year")  # contained
+    assert not same_fact(d, "Security logs for production systems | 1 year minimum",
+                         d, "Security logs for critical systems that are not production | 90 days minimum")    # values differ
+    assert not same_fact(d, "Tips up to 20%", "hb:other", "Tips up to 20%")                                       # other document
+    assert same_fact(d, "Set up a session with your buddy 1-2 days before you plan",
+                     d, "Set up a catch-up session with your buddy 1-2 days after your return")                   # mostly same words

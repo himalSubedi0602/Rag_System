@@ -103,6 +103,7 @@ def run(cfg: dict[str, Any], split: str) -> tuple[list[dict[str, Any]], list[dic
             deep_ids = [cid for cid, _ in retrieve(q["question"], bundle, deep_cfg)]
             row.update(deep_chunk_recall(q, deep_ids, bundle.chunks_by_id, depths))
         row["latency_ms"] = latency_ms
+        row["cluster"] = q.get("cluster", q["id"])   # linked questions are resampled together
         rows.append(row)
         log.append({**row, "question": q["question"], "gold_doc_ids": q["gold_doc_ids"],
                     "outdated_doc_ids": q["outdated_doc_ids"],
