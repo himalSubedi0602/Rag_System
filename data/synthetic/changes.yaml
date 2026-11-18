@@ -1,0 +1,124 @@
+# Minimal-edit outdated versions. Each entry produces data/synthetic/<file>.md:
+# a FULL copy of the current page with ONLY these facts changed and an earlier date.
+# Regenerate with:  python -m src.make_synthetic     (then re-run ingestion)
+#
+# replace: [current text, old text]   every listed current text must occur in the page
+
+- file: expenses-2023
+  source: hb:finance/expenses
+  date: "2023-03-01"
+  replace:
+    - ["Expense claims over 90 days", "Expense claims over 60 days"]
+    - ["up to $300 USD (or equivalent local currency) inclusive of tax per night", "up to $250 USD (or equivalent local currency) inclusive of tax per night"]
+    - ["$300 USD limit", "$250 USD limit"]
+    - ["$300USD/night", "$250USD/night"]
+    - ["up to $120 USD (or local equivalent currency) per day", "up to $100 USD (or local equivalent currency) per day"]
+    - ["International: At least 21 days in advance", "International: At least 30 days in advance"]
+    - ["Parking and tolls  at $150 limit per day.", "Parking and tolls  at $100 limit per day."]
+    - ["Limit is set to $60/year.", "Limit is set to $40/year."]
+    - ["Dry cleaning is allowable if the stay is over 5 days.", "Dry cleaning is allowable if the stay is over 7 days."]
+    - ["will need to have manager approval attached to the claim", "will need to have VP approval attached to the claim"]   # rule: approval level
+    - ["then Manager and Finance approval", "then Manager approval"]   # rule: approval level
+    - ["Room service is allowable as a meal", "Room service is not reimbursable as a meal"]   # rule: allowed -> not allowed
+    - ["Cash or cash equivalents, such as gift cards, are not allowed", "Cash is not allowed, but gift cards are allowed"]   # rule: not allowed -> allowed
+    - ["then the most senior Team Member present should pay the bill", "then the Team Member who organised the meal should pay the bill"]   # rule: who pays
+    - ["Pre-Approval is needed prior to submitting claims.", "Pre-Approval is optional prior to submitting claims."]   # rule: required -> optional
+
+- file: password-standard-2022
+  source: hb:security/policies_and_standards/password-standard
+  date: "2022-05-10"
+  replace:
+    - ["Minimum Length = 12 characters", "Minimum Length = 8 characters"]
+    - ["minimum password length needs to be set to 12 characters", "minimum password length needs to be set to 8 characters"]
+    - ["expired within a maximum of 90 calendar days", "expired within a maximum of 60 calendar days"]
+    - ["temporary account lockout after 10 failed attempts", "temporary account lockout after 5 failed attempts"]
+    - ["lockout after 10 attempts or less", "lockout after 5 attempts or less"]
+
+- file: token-management-standard-2023
+  source: hb:security/policies_and_standards/token-management-standard
+  date: "2023-01-16"
+  replace:
+    - ["Personal Access Tokens - 30 days", "Personal Access Tokens - 90 days"]
+    - ["Group Tokens – 1 year", "Group Tokens – 2 years"]
+
+- file: us-leave-of-absence-2022
+  source: hb:people-policies/leave-of-absence/us
+  date: "2022-02-14"
+  replace:
+    - ["| Parental Leave | 16 weeks |", "| Parental Leave | 12 weeks |"]
+
+- file: referral-process-2022
+  source: hb:hiring/referral-process
+  date: "2022-08-01"
+  replace:
+    - ["classified as your referral for 6 months", "classified as your referral for 12 months"]
+    - ["open position 6 months after", "open position 12 months after"]
+    - ["we recommend waiting 6 months to refer them again", "we recommend waiting 3 months to refer them again"]
+
+- file: stock-options-2021
+  source: hb:total-rewards/stock-options
+  date: "2021-11-30"
+  replace:
+    - ["90 days post termination to exercise", "30 days post termination to exercise"]
+    - ["your stock options expire 10 years after they were issued", "your stock options expire 7 years after they were issued"]
+
+- file: phishing-program-2022
+  source: hb:security/security-assurance/governance/phishing
+  date: "2022-06-20"
+  replace:
+    - ["one phishing simulation campaign will take place each fiscal quarter", "one phishing simulation campaign will take place twice per fiscal year"]
+
+- file: people-policies-2022
+  source: hb:people-policies
+  date: "2022-04-04"
+  replace:
+    - ["three consecutive workdays", "five consecutive workdays"]
+    - ["via email or Slack within a 24 hour period", "via email or Slack within a 48 hour period"]
+
+- file: support-on-call-2023
+  source: hb:support/on-call
+  date: "2023-04-11"
+  replace:
+    - ["If a new alert has not been acknowledged after 10 minutes", "If a new alert has not been acknowledged after 15 minutes"]
+    - ["take a break each 90 minutes", "take a break each 60 minutes"]
+
+- file: travel-safety-2022
+  source: hb:finance/travel
+  date: "2022-09-05"
+  replace:
+    - ["Covered for trips less than 180 days", "Covered for trips less than 90 days"]
+    - ["Maximum of $2,500", "Maximum of $1,500"]
+
+- file: modern-health-2023
+  source: hb:total-rewards/benefits/modern-health
+  date: "2023-02-20"
+  replace:
+    - ["6 complimentary therapy sessions per year", "4 complimentary therapy sessions per year"]
+    - ["hildren up to age 27", "hildren up to age 26"]
+
+- file: inc-benefits-us-2023
+  source: hb:total-rewards/benefits/general-and-entity-benefits/inc-benefits-us
+  date: "2023-01-09"
+  replace:
+    - ["replacing up to 66.7% of base salary", "replacing up to 60% of base salary"]
+    - ["Free 30-minute consultations and 25% fee discounts", "Free 30-minute consultations and 20% fee discounts"]
+
+- file: ltd-benefits-uk-2023
+  source: hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk
+  date: "2023-03-27"
+  replace:
+    - ["Dental coverage: £400 per year", "Dental coverage: £300 per year"]
+    - ["Optical coverage: £200 per year", "Optical coverage: £150 per year"]
+
+- file: referral-operations-2023
+  source: hb:hiring/referral-operations
+  date: "2023-06-12"
+  replace:
+    - ["please allow us 5 business days to review", "please allow us 10 business days to review"]
+
+- file: records-retention-2023
+  source: hb:security/policies_and_standards/records-retention-deletion
+  date: "2023-05-02"
+  replace:
+    - ["| Production backup tests                            | 1 year ", "| Production backup tests                            | 2 years"]
+    - ["| Risk treatment plans                               | 3 years", "| Risk treatment plans                               | 5 years"]
