@@ -1,8 +1,10 @@
 chunks: 2468
 embedded_units: 7189
 quotes_reachable: 159/159
+rerank_truncated_pct: null
 vector_index_mb: 16.5
 chunks_truncated_pct: 0.0
 tokens_unseen_pct: 0.0
-mean_latency_ms: 13.1
+mean_latency_ms: 16.6
+tolerance_columns: yes (cosine scores)
 questions: 144

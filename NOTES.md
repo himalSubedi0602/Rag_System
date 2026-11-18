@@ -427,3 +427,225 @@ short benefit pages are easy. Compound (n=7, 5 clusters) 0.43; multi_doc (n=15, 
 
 **Consequence for 7b (decision unchanged, reasoning restated):** small2big stays the 7b base because it
 removes truncation (measurement validity), not because of a recall gain - which did not replicate.
+
+## Phase 7b: decisions recorded before any 7b run (2026-11-18)
+
+- **Power decision:** we accept that only effects of about **0.13 or more** (chunk R@5, `overall`, ~75
+  clusters) can be confirmed on the tune split. No more tune questions will be added. Smaller effects
+  will be reported as "no detectable difference".
+- **chunk1000 is not part of 7b.** Its non_outdated gain on the expanded set stays exploratory.
+- **Intervals:** reports show the plain per-question interval next to the cluster interval for context;
+  **all verdicts use the cluster interval**.
+- **Run 8b (exclude legacy) is kept**, as in the original pre-registration (Amendment 2 did not remove it).
+- **Candidate second research question:** *How reliable are chunking comparisons on small RAG test sets?*
+  Evidence so far: (1) none of the 7a effects under test replicated on 60 new questions (bge +0.098 -> +0.000,
+  heading +0.038 -> -0.125, small2big +0.068 -> +0.008); (2) gold-chunk sharing reduced 126 questions to
+  75 independent clusters, so adding questions bought much less precision than their count suggests.
+
+### End-of-Phase-7 checklist
+- [ ] Decide whether to add **test-split questions with unique gold chunks** before the single test run
+      (the test split has never been run; adding questions now would not leak results).
+- [ ] Comparison table and charts across all Phase 7 runs.
+- [ ] Choose the single best tune configuration (primary metrics + guardrail; ties -> simpler).
+- [ ] Run the baseline and the chosen configuration once each on test with `--final`.
+- [ ] Tag "retrieval done".
+
+## Phase 7b step 1: retests on the small2big base (2026-11-18; tune; cluster intervals, 75 clusters)
+
+| run | vs base small2big: Δ main chunk R@5 | vs baseline: Δ main | vs baseline: Δ non_outdated | vs baseline: Δ fact_found | level | vectors / MB / ms |
+|---|---|---|---|---|---|---|
+| small2big (base) | | +0.040 [-0.02, 0.11] – | +0.050 – | +0.24 ✅ | 0.536 | 7,189 / 16.5 / 15 |
+| bge (no small2big) | | +0.052 [-0.05, 0.16] – | +0.045 – | +0.20 – | 0.548 | 2,468 / 3.7 / 9 |
+| s2b_bge | -0.008 [-0.08, 0.06] – | +0.032 – | +0.050 – | +0.12 – | 0.528 | 7,189 / 16.5 / 17 |
+| s2b_heading | -0.028 [-0.11, 0.05] – | +0.012 – | -0.025 – | +0.28 ✅ | 0.508 | 7,515 / 20.4 / 12 |
+| s2b_prefix | +0.052 [-0.02, 0.12] – | +0.091 [0.000, 0.179] – (boundary) | **+0.094 ✅** | +0.16 – | 0.587 | 7,189 / 16.5 / 16 |
+
+- **No step-1 change is an improvement over the base** (no cluster interval excludes zero).
+- **Decision rule "bge alone vs small2big + bge":** s2b_bge - bge = -0.020 [-0.101, 0.052] (10/14): the
+  intervals overlap, so by the pre-registered rule the simpler configuration, **bge alone**, is preferred over
+  small2big + bge.
+- s2b_prefix has the highest level (0.587) and is significant vs the baseline on non_outdated, but its main
+  interval vs the baseline touches zero and it is not better than its own base.
+- **Tie-tolerance sensitivity (fact_stale vs baseline):** bge-based runs look worse at tolerance 0.001
+  (bge +0.35 [0.14, 0.60], s2b_bge +0.44 [0.19, 0.65]) but not at 0.01 (+0.05, +0.11). The "bge prefers old
+  versions" effect lives entirely in score gaps between 0.001 and 0.01 - wording/boundary noise, as in 7a.
+- Cross-check: all runs truncation-free except s2b_prefix (3.6% of piece tokens over MiniLM's limit).
+- **Open decision (for the user): which configuration is the base for step 2.**
+
+### Amendment 3 (2026-11-18, before any step-2 run; written before the paired recall@100 test was computed)
+- **Step-2 base rule:** step-2 base = **bge alone**, unless small2big's chunk recall@100 is significantly higher
+  than bge's (paired cluster interval excludes zero). In that case the base is small2big, because the reranker
+  and two-stage search can't recover chunks that never reach them.
+  Disclosure: the two point estimates (small2big 0.881, bge 0.873) were already printed in the step-1 report
+  output; the paired cluster test had not been computed when this rule was written.
+- **Run 6 (hybrid BM25 + vector, RRF): k = 60 is the pre-registered setting.** k = 10 and k = 100 are
+  exploratory only.
+- **New pre-registered run 6p: chosen base + title/section prefix**, reporting its truncation % against the
+  embedding model's limit (512 tokens for bge, 256 for MiniLM).
+- **Version verdicts:** tie tolerance **0.005 is primary**; 0.001 and 0.01 are sensitivity checks only.
+- Reranker scores (runs 7, 7b, 12) are cross-encoder logits, not cosine similarities, so the 0.005 tie
+  tolerance is applied on that scale; the sensitivity checks show whether this matters.
+- **Rule applied:** small2big - bge, chunk recall@100 = +0.008, cluster [-0.054, 0.070] (8 better / 8 worse);
+  recall@30 = +0.004 [-0.064, 0.081]. Interval includes zero -> **step-2 base = bge alone**.
+- **Run definitions confirmed (2026-11-18):** run 8 excludes `version_status = superseded` only (old versions
+  of pages that still have a current version). Run 8b excludes `version_status = legacy` only (old documents
+  with no current replacement).
+- **Legacy check (before the version branch):** no question's gold, acceptable or outdated document is legacy
+  (13 legacy docs, all old legal agreements, none used by any question). rp-01's old Testing Agreement versions
+  v1-v5 are *superseded*, not legacy. So 8b removes no question's only source; it can only remove noise.
+  If that ever changes, those questions are reported separately under 8b.
+- **History questions under run 8:** all 12 history questions (10 tune, 2 test) have a superseded gold
+  document, so run 8 removes their only source **by design**. They will be reported explicitly under run 8
+  as the cost of filtering (expected to drop to 0).
+
+## Phase 7b step 2 results (2026-11-18; tune; base = bge; cluster intervals; 126 questions / 75 clusters)
+
+| run | vs bge: Δ MAIN chunk R@5 | vs bge: Δ non_outdated | vs bge: Δ fact_found | vs baseline: Δ MAIN | R@5 | R@100 | search ms |
+|---|---|---|---|---|---|---|---|
+| bge (base) | | | | +0.052 – | 0.548 | 0.873 | 11 |
+| 6p bge_prefix | +0.056 [-0.01, 0.12] – (14/7) | +0.050 – | +0.04 – | **+0.107 ✅** | 0.603 | 0.897 | 8 |
+| **6 hybrid (k=60)** | **+0.135 [0.06, 0.22] ✅ (24/7)** | **+0.109 ✅** | **+0.24 ✅** | **+0.187 ✅** | **0.682** | **0.944** | 18 |
+| 6b cap2 | -0.048 [-0.09, 0.00] – (3/11) | **-0.069 ❌** | **-0.20 ❌** | +0.004 – | 0.500 | 0.607 | 9 |
+| **7 rerank top 30** | **+0.123 [0.05, 0.21] ✅ (23/7)** | **+0.114 ✅** | +0.00 – | **+0.175 ✅** | 0.671 | 0.873 | 294 |
+| **7b rerank top 100** | **+0.151 [0.07, 0.24] ✅ (27/8)** | **+0.149 ✅** | +0.12 – | **+0.202 ✅** | **0.698** | 0.873 | 713 |
+| 12 two-stage | +0.067 [0.00, 0.14] ✅ (16/8; lower bound just above 0) | +0.094 ✅ | +0.04 – | +0.119 ✅ | 0.615 | 0.758 | 406 |
+| exploratory: hybrid k=10 / k=100 | +0.131 / +0.135 (both ✅) | | | | | | |
+
+**First pre-registered improvements on the main metric:** hybrid (6), reranker top 30 (7) and top 100 (7b),
+all with effects (+0.12 to +0.15) at or above the ~0.13 detectable size, and two-stage (12) just clearing zero.
+
+**Interpretation**
+- **Hybrid works because BM25 finds what embeddings miss** (exact names, numbers, policy terms): R@100 rises
+  from 0.873 to 0.944 and fact_found from 0.68 to 0.92. RRF k barely matters for recall (10/60/100 all ~+0.13);
+  k = 10 made fact_stale worse (exploratory, +0.27 ❌), k = 60/100 did not.
+- **The reranker reorders the same candidates better:** R@100 is unchanged (same pool) but R@5 rises from
+  0.548 to 0.671 (top 30) and 0.698 (top 100). Looking at 100 candidates instead of 30 adds +0.03 over run 7,
+  at 2.4x the latency (713 vs 294 ms).
+- **The cap hurts:** limiting each document to 2 chunks removes relevant chunks of long pages (R@100 0.873 ->
+  0.607, fact_found ❌). The long-page problem needs better ranking, not fewer chunks per page.
+- **Two-stage (12): not robust, not carried forward.** It helps less than the plain reranker: choosing only 3 documents first loses answers in other
+  documents (R@100 0.758 < 0.873).
+- **bge + prefix (6p): not robust, not carried forward.** Significant vs the baseline but not vs bge
+  (+0.056 –); the gain over the baseline is mostly bge's.
+- **[WITHDRAWN by Amendment 3b: invalid tolerance values for hybrid/reranker runs; re-reported on the rank
+  scale below]** Version side effects (fact_stale, primary tolerance 0.005): no step-2 run changes fact_stale
+  significantly vs bge. vs the original baseline, rerank100 looks worse (+0.36 [0.06, 0.60] ❌; +0.23 n.s. at
+  tolerance 0.01): the cross-encoder breaks the old/new near-ties decisively, and with n = 11 the direction
+  is noisy. Version handling is the job of runs 8, 8b, 9, 9b.
+- **Cross-encoder truncation:** 83% of chunks exceed its 512-token budget with a median question (18 tokens),
+  but only by ~8.5 tokens each: 1.5% of chunk text is unread. Minor.
+- Multiple comparisons: hybrid and reranker effects are large and consistent across k values and candidate
+  counts, so chance is an unlikely explanation for them; two-stage and bge_prefix are near the boundary.
+
+### Amendment 3b (2026-11-18, written BEFORE the re-run results were seen): staleness is measured by rank
+
+**Reason.** The 0.005 tie tolerance was designed for cosine similarities (0-1 scale), where gaps that small are
+wording noise. It does not apply to other score scales:
+- **Hybrid (RRF):** scores are 1/(k + rank), so neighbouring ranks differ by ~0.0003. At 0.005, 100% of found
+  hybrid pairs were "ties", which made hybrid's fact_stale a constant 0.5.
+- **Reranker / two-stage:** scores are cross-encoder logits (unbounded). A sigmoid doesn't fix this, because it
+  compresses confident scores (logits 8 vs 10 become 0.9997 vs 0.99995, which is a "tie"), so the same tolerance
+  means something different at each point of the curve.
+
+**Changes.**
+- **Primary for every run (cosine runs included):** `stale`, `stale@5`, `fact_stale` and `fact_stale@5` are
+  decided by rank alone. Exact score ties are already ordered by the chunk_id-hash tie-break, so every run uses
+  one scale and no run gets 0.5 tie credit that another can't get.
+- **Secondary, cosine runs only:** the tolerance versions (`*_t001`, `*_t005`, `*_t01`). For hybrid, reranker
+  and two-stage runs they are left empty.
+- The primary tolerance of 0.005 from Amendment 2 now applies only to that secondary detail.
+
+**Withdrawn.** The earlier statements "no step-2 run changes fact_stale significantly vs bge" and "rerank100
+looks worse than the baseline on fact_stale (+0.36 ❌)" are withdrawn. They paired cosine runs (mostly ties at
+0.5) with hybrid and reranker runs that had invalid or non-comparable tolerance values. The step-1 and step-2
+fact_stale results will be re-reported on the rank scale.
+
+### Step 1 + 2 version metrics re-reported on the rank scale (after Amendment 3b; all 14 runs re-run)
+
+Retrieval didn't change, so every chunk/doc recall number above is identical (the step-1 decision stands:
+small2big vs bge R@100 +0.008 [-0.054, 0.070] -> base = bge).
+
+| run | fact_stale (rank) | doc stale (rank) | fact_found | Δ fact_stale vs bge (both found) | tolerance 0.001/0.005/0.01 (cosine only) |
+|---|---|---|---|---|---|
+| baseline | 0.667 | 0.591 | 0.48 | | 0.42 / 0.46 / 0.50 |
+| small2big | 0.722 | 0.636 | 0.72 | | 0.58 / 0.50 / 0.56 |
+| bge | 0.765 | 0.696 | 0.68 | | 0.68 / 0.53 / 0.53 |
+| bge_prefix | 0.611 | 0.652 | 0.72 | -0.176 [-0.40, 0.00] – (3/0, n=17) | 0.56 / 0.47 / 0.50 |
+| hybrid | 0.739 | 0.667 | 0.92 | +0.059 [-0.14, 0.22] – (1/2, n=17) | n/a |
+| cap2 | 0.917 | 0.696 | 0.48 | +0.000 (n=12) | 0.79 / 0.54 / 0.54 |
+| rerank30 | 0.647 | 0.522 | 0.68 | -0.118 [-0.44, 0.21] – (5/3, n=17) | n/a |
+| rerank100 | 0.650 | 0.500 | 0.80 | -0.118 [-0.44, 0.21] – (5/3, n=17) | n/a |
+| twostage | 0.611 | 0.500 | 0.72 | -0.214 [-0.57, 0.14] – (5/2, n=14); doc stale -0.333 ✅ | n/a |
+
+- **No run changes fact_stale significantly** vs bge or vs the baseline on the rank scale (now a valid
+  statement). The reranker runs point the right way (old fact first 65% vs 77%), n = 17 is too small to say.
+- **Every run is stale most of the time:** with rank alone, the old fact comes first in 61-92% of found
+  pairs. The near-identical synthetic copies are a coin flip at best for every ranker: version handling
+  (runs 8-9b) is needed, retrieval quality alone doesn't fix it.
+- **Sigmoid sensitivity (rejected):** with sigmoid(logit) and the cosine tolerances, 50-88% of reranker pairs
+  become "ties", because confident logits saturate. That confirms the reason for rank-only.
+- 7a-only result folders (chunk250, chunk1000, heading, prefix) were not re-run and keep the old columns;
+  they are not used in any Phase 7b comparison.
+
+**Replication (main metric vs bge):** hybrid is ✅ on both the original 66 (+0.121) and the new 60 (+0.150).
+rerank30 / rerank100 are + on the original 66 (+0.106 / +0.114, intervals just include 0) and ✅ on the new 60
+(+0.142 / +0.192): same sign, so they replicate; confirmed on the combined 126.
+
+**Document groups (chunk R@5, small groups are noisy):** hybrid and the reranker help in different places.
+Hybrid is strongest on handbook pages (finance 0.44 -> 0.64, hiring 0.33 -> 0.83, total-rewards 0.72 -> 0.91)
+but slightly worse on PDFs (0.72 -> 0.65); the reranker gains on PDFs (0.72 -> 0.82). people-policies stays at
+0.29 for every run (n = 7): a candidate for the failure analysis.
+
+### Replication of the 7b effects, under the rule as written
+
+The rule (Test-set expansion section, fixed before the new questions were drafted): *"An effect 'replicates'
+if it has the same sign on the new questions; it is 'confirmed' only if the combined paired 95% interval
+excludes zero (unchanged pre-registered rule)."*
+
+| run (vs bge, chunk R@5) | original 66 | new 60 | same sign? | combined 126 | verdict |
+|---|---|---|---|---|---|
+| hybrid | +0.121 ✅ | +0.150 ✅ | yes | +0.135 ✅ | replicates, confirmed (significant in both groups on its own) |
+| rerank30 | +0.106 – | +0.142 ✅ | yes | +0.123 ✅ | replicates, confirmed |
+| rerank100 | +0.114 – | +0.192 ✅ | yes | +0.151 ✅ | replicates, confirmed |
+
+No conclusion depends on the ambiguities below: hybrid passes under any reading. No new replication round.
+
+### Check: do old/current fact chunks differ in anything besides the changed fact? (before the version runs)
+
+- **Documents:** after undoing the listed replacements, every synthetic old version is character-identical to
+  its current page (15/15), with the same chunk count. Generation is exact, and there is nothing to fix there.
+- **Chunks:** 121 of 154 aligned chunk pairs are identical once the fact is undone. The other 33 (in 3 documents:
+  expenses, phishing, inc-benefits-us) differ by 2-5 words at the chunk edges, out of ~370 words. The cause is
+  fixed-size token chunking, not generation: a replacement that changes the token count ("allowable" ->
+  "not reimbursable") shifts every later window. 8 fact chunks are affected.
+- **Do the shifts explain the old-first lean? No.** On tune questions whose fact-chunk pairs are identical, the
+  old fact still comes first in 59-78% of pairs (baseline 0.78 n=9, bge 0.73 n=15, hybrid 0.78 n=18,
+  rerank30 0.60 n=15, rerank100 0.59 n=17).
+- **Decision:** no regeneration and no re-run.
+- **Finding:** all rankers prefer the OLD fact in most near-identical pairs (61-92% overall; 59-78% when the
+  texts are identical apart from the fact). Nothing in the text marks which version is current, so the
+  rankers' preference is arbitrary in direction. Only version-aware handling (runs 8-9b) can fix it.
+  Small n, and pairs cluster on a few documents (expenses supplies many), so the size of the lean is uncertain.
+
+### Methodology frozen for the rest of Phase 7 (2026-11-18)
+
+No more metric or methodology changes in Phase 7, unless a bug would change a headline conclusion. Anything
+smaller goes into the list below.
+
+### Limitations
+
+1. **The replication rule was written for the 7a effects.** Applying it to 7b effects (hybrid, reranker)
+   extends it to effects first measured after the new questions existed, so the new 60 are not a true
+   out-of-sample replication for 7b.
+2. **"Same sign" doesn't require the original-66 effect to be significant** (the reranker's isn't), and the
+   combined interval includes the original 66, so "confirmed" is not independent of them.
+3. **Chunk-edge shifts:** 8 synthetic fact chunks differ from their current version by 2-5 edge words (fixed-size
+   chunking after length-changing replacements). They are shown not to explain the old-first lean.
+4. **Few staleness pairs:** fact_stale pairs only n = 10-23 questions in 8-14 clusters, so only large effects
+   are detectable.
+5. **The cross-encoder doesn't read ~1.5% of chunk text** (512-token limit).
+6. **Small document groups** (support n=5, hiring n=6, people-policies n=7, legal n=1) are descriptive only.
+7. **Step-1/2 multiplicity:** 9 step-2 comparisons with no correction. hybrid and the reranker are robust to
+   this; two-stage and bge_prefix were not carried forward partly for this reason.
+8. **7a-only result folders** (chunk250, chunk1000, heading, prefix) keep the old tolerance-based stale
+   columns. No 7b comparison uses them.

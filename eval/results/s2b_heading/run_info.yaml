@@ -1,0 +1,10 @@
+chunks: 4704
+embedded_units: 7515
+quotes_reachable: 159/159
+rerank_truncated_pct: null
+vector_index_mb: 20.4
+chunks_truncated_pct: 0.0
+tokens_unseen_pct: 0.0
+mean_latency_ms: 18.2
+tolerance_columns: yes (cosine scores)
+questions: 144
