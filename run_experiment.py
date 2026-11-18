@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 import time
 from datetime import datetime
@@ -27,8 +28,8 @@ import yaml
 
 from src.chunking import EMBEDDING_MAX_TOKENS, count_tokens, get_tokenizer, index_text, truncation_stats
 from src.config import load_config, resolve_path
-from src.evaluate import HEADLINE, aggregate, deep_chunk_recall, evaluate_question, to_frame
-from src.index import IndexBundle, build_indexes
+from src.evaluate import HEADLINE, aggregate, deep_chunk_recall, evaluate_question, quote_matches, to_frame
+from src.index import IndexBundle, build_indexes, make_pieces
 from src.retrieve import retrieve, unsupported_settings
 
 
@@ -38,20 +39,52 @@ def load_questions(cfg: dict[str, Any], split: str) -> list[dict[str, Any]]:
         return [q for q in map(json.loads, f) if q["split"] == split]
 
 
-def run_info(cfg: dict[str, Any], bundle: IndexBundle, rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Run-level facts: how many chunks, how much text the embedding model can't see, speed."""
+def quotes_reachable(questions: list[dict[str, Any]], bundle: IndexBundle) -> str:
+    """How many gold quotes are inside at least one chunk of this chunking (the ceiling for chunk recall)."""
+    by_doc: dict[str, list[str]] = {}
+    for c in bundle.chunks_by_id.values():
+        by_doc.setdefault(c["doc_id"], []).append(c["text"])
+    items = [e for q in questions for e in q["gold_evidence"]]
+    ok = sum(any(quote_matches(e["quote"], t) for d in {e["doc_id"], *e.get("acceptable_doc_ids", [])}
+                 for t in by_doc.get(d, [])) for e in items)
+    return f"{ok}/{len(items)}"
+
+
+def vector_index_mb(cfg: dict[str, Any], collection_names: list[str]) -> float:
+    """On-disk size of the HNSW vector index folders of these Chroma collections (MB).
+    Chroma keeps each collection's vector index in a folder named after its VECTOR segment id."""
+    chroma_dir = resolve_path(cfg["paths"]["chroma_dir"])
+    con = sqlite3.connect(chroma_dir / "chroma.sqlite3")
+    marks = ",".join("?" * len(collection_names))
+    ids = [r[0] for r in con.execute(
+        f"SELECT s.id FROM segments s JOIN collections c ON s.collection = c.id "
+        f"WHERE s.scope = 'VECTOR' AND c.name IN ({marks})", collection_names)]
+    con.close()
+    size = sum(f.stat().st_size for seg in ids for f in (chroma_dir / seg).rglob("*") if f.is_file())
+    return round(size / 1e6, 1)
+
+
+def run_info(cfg: dict[str, Any], bundle: IndexBundle, rows: list[dict[str, Any]],
+             questions: list[dict[str, Any]]) -> dict[str, Any]:
+    """Run-level facts: chunks, how much text the embedding model can't see, quote reachability, speed."""
     tokenizer = get_tokenizer(cfg["chunking"]["tokenizer"])
-    counts = [count_tokens(index_text(c, cfg["chunking"]["add_prefix"]), tokenizer)
-              for c in bundle.chunks_by_id.values()]
+    if cfg["retrieval"]["small_to_big"]:   # the model embeds pieces, not whole chunks
+        texts = [p["text"] for p in make_pieces(list(bundle.chunks_by_id.values()), cfg)]
+    else:
+        texts = [index_text(c, cfg["chunking"]["add_prefix"]) for c in bundle.chunks_by_id.values()]
+    counts = [count_tokens(t, tokenizer) for t in texts]
     trunc = truncation_stats(counts, EMBEDDING_MAX_TOKENS[cfg["embedding"]["model"]])
-    return {"chunks": len(counts),
+    return {"chunks": len(bundle.chunks_by_id), "embedded_units": len(counts),
+            "quotes_reachable": quotes_reachable(questions, bundle),
+            "vector_index_mb": vector_index_mb(cfg, [bundle.collection.name] +
+                                               ([bundle.piece_collection.name] if bundle.piece_collection else [])),
             "chunks_truncated_pct": round(trunc["chunks_truncated_pct"], 1),
             "tokens_unseen_pct": round(trunc["tokens_unseen_pct"], 1),
             "mean_latency_ms": round(sum(r["latency_ms"] for r in rows) / len(rows), 1),
             "questions": len(rows)}
 
 
-def run(cfg: dict[str, Any], split: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], IndexBundle]:
+def run(cfg: dict[str, Any], split: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], IndexBundle, list[dict[str, Any]]]:
     """Retrieve for every question; return (metric rows, full log rows, the index bundle)."""
     bundle = build_indexes(cfg)
     questions = load_questions(cfg, split)
@@ -76,7 +109,7 @@ def run(cfg: dict[str, Any], split: str) -> tuple[list[dict[str, Any]], list[dic
                     "retrieved": [{"rank": i + 1, "chunk_id": cid, "doc_id": bundle.chunks_by_id[cid]["doc_id"],
                                    "is_current": bundle.chunks_by_id[cid]["is_current"], "score": round(score, 4)}
                                   for i, (cid, score) in enumerate(ranked)]})
-    return rows, log, bundle
+    return rows, log, bundle, questions
 
 
 def fmt(value: Any) -> str:
@@ -121,8 +154,9 @@ def write_summary(path: Path, cfg: dict[str, Any], split: str, table: pd.DataFra
         f"- embedding: {cfg['embedding']['model']}",
         f"- retrieval: mode={r['mode']} top_k={r['top_k_each']} version_filter={r['version_filter']} "
         f"date_aware={r['date_aware_rerank']} reranker={cfg['reranker']['enabled']}",
-        f"- chunks: {info['chunks']}; truncated by the embedding model: {info['chunks_truncated_pct']}% of chunks, "
-        f"{info['tokens_unseen_pct']}% of tokens never embedded",
+        f"- chunks: {info['chunks']} (embedded units: {info['embedded_units']}); truncated by the embedding model: "
+        f"{info['chunks_truncated_pct']}% of units, {info['tokens_unseen_pct']}% of tokens never embedded",
+        f"- gold quotes reachable in this chunking: {info['quotes_reachable']}",
         f"- run at: {datetime.now().strftime('%Y-%m-%d %H:%M')}", "",
         "## Headline metrics (95% bootstrap intervals in brackets)", "",
         "Retrieval: **chunk_recall@5** (main), chunk_mrr; doc_recall@5 is a lenient upper bound. "
@@ -166,9 +200,9 @@ def main() -> None:
     if problems := unsupported_settings(cfg):
         sys.exit(f"Config uses features not implemented yet: {', '.join(problems)}")
 
-    rows, log, bundle = run(cfg, split)
+    rows, log, bundle, questions = run(cfg, split)
     table = aggregate(rows, cfg["eval"]["ks"])
-    info = run_info(cfg, bundle, rows)
+    info = run_info(cfg, bundle, rows, [q for q in questions if q["question_type"] != "no_answer"])
 
     out = resolve_path(cfg["paths"]["results_dir"]) / cfg["run_name"]
     out.mkdir(parents=True, exist_ok=True)

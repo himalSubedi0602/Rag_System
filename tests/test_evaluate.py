@@ -238,3 +238,10 @@ def test_deep_chunk_recall_finds_answers_beyond_the_top_30():
     chunks = {**CHUNKS}
     result = deep_chunk_recall(question(), deep, chunks, [30, 100])
     assert result == {"chunk_recall@30": 0.0, "chunk_recall@100": 1.0}
+
+
+def test_tie_tolerance_treats_tiny_gaps_as_ties():
+    from src.evaluate import EXACT_TIE
+    assert stale_score([False, True], [True, False], scores=[0.803, 0.800]) == 0.5            # gap 0.003 < 0.005
+    assert stale_score([False, True], [True, False], scores=[0.803, 0.800], tolerance=EXACT_TIE) == 1.0
+    assert stale_score([False, True], [True, False], scores=[0.810, 0.800]) == 1.0            # gap 0.010: real
