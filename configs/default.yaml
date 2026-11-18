@@ -8,6 +8,7 @@ seed: 42
 paths:
   sources: data/sources.yaml   # corpus source list (committed)
   raw_dir: data/raw
+  synthetic_dir: data/synthetic  # hand-made old policy versions (committed)
   processed_dir: data/processed
   chroma_dir: data/chroma
   questions: eval/questions.jsonl

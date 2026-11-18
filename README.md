@@ -57,6 +57,7 @@ python -m src.ingest
 python -m src.inspect_docs --n 5
 python -m src.chunking configs/baseline.yaml
 python -m src.index configs/baseline.yaml --query "How many days do I have to submit an expense claim?"
+python -m src.testset
 ```
 
 - **Handbook:** selected sections of the [GitLab public handbook](https://gitlab.com/gitlab-com/content-sites/handbook)
@@ -84,9 +85,10 @@ python -m src.config configs/baseline.yaml
 ```
 data/raw/            source documents (git-ignored)
 data/processed/      extracted text and chunk store (git-ignored)
+data/synthetic/      hand-made outdated policy copies for evaluation (committed)
 configs/             default.yaml + one YAML per experiment
 src/                 pipeline code (config, ingest, chunking, index, retrieve, generate, evaluate)
-eval/questions.jsonl test set (Phase 5)
+eval/questions.jsonl test set (built from eval/questions_source.yaml by src/testset.py)
 eval/results/<run>/  per-run metrics (CSV) and charts
 tests/               pytest tests
 NOTES.md             build log: decisions and results per phase

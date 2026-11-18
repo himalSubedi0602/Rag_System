@@ -36,7 +36,7 @@ REPEAT_SHARE = 0.5     # a line repeated in the edge zone of >= 50% of pages is 
 class SourceFile:
     """One file to ingest."""
     path: Path                         # absolute path on disk
-    rel_path: str                      # path relative to raw_dir, e.g. "handbook/finance/expenses.md"
+    rel_path: str                      # "handbook/...", "pdfs/..." (inside raw_dir) or "synthetic/..."
     source_type: str                   # "markdown" | "pdf"
     pdf_entry: dict[str, Any] | None = None  # the PDF's entry from sources.yaml
 
@@ -59,7 +59,7 @@ def file_hash(path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
-FRONT_MATTER_KEYS = ("title", "version_group", "is_current", "updated_date", "synthetic_old_version")
+FRONT_MATTER_KEYS = ("title", "version_group", "is_current", "updated_date", "synthetic_old_version", "department")
 
 
 def split_front_matter(raw: str) -> tuple[dict[str, Any], str]:
@@ -247,7 +247,17 @@ def build_record(src: SourceFile, extraction: dict[str, Any], content_hash: str,
     Metadata is rebuilt on every run (cheap), so editing sources.yaml takes effect
     even when the file itself is unchanged and its text comes from the cache.
     """
-    if src.source_type == "markdown":
+    if src.rel_path.startswith("synthetic/"):
+        # Hand-made old versions (Phase 5): all metadata comes from the front matter.
+        front = extraction["front_matter"]
+        doc_id = "syn:" + Path(src.rel_path).stem
+        department = front.get("department", "general")
+        title = extraction["title"] or doc_id
+        updated = front.get("updated_date")
+        explicit_group = front.get("version_group")
+        explicit_current = front.get("is_current")
+        synthetic = bool(front.get("synthetic_old_version", False))
+    elif src.source_type == "markdown":
         front = extraction["front_matter"]
         handbook_rel = src.rel_path.split("/", 1)[1]  # path inside the handbook folder
         doc_id = handbook_doc_id(src.rel_path)
@@ -331,7 +341,7 @@ def assign_versions(records: list[dict[str, Any]]) -> None:
     # 1. Candidate groups from file names.
     candidates: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in records:
-        if r["source_type"] == "markdown":
+        if r["doc_id"].startswith("hb:"):
             key, r["version_number"] = handbook_version_key(r["doc_id"])
             candidates["hb:" + key].append(r)
 
@@ -367,12 +377,19 @@ def assign_versions(records: list[dict[str, Any]]) -> None:
 # Pipeline
 # ---------------------------------------------------------------------------
 
-def discover_files(raw_dir: Path, sources: dict[str, Any]) -> tuple[list[SourceFile], list[str]]:
-    """List handbook markdown files and the PDFs named in sources.yaml. Also returns missing PDF ids."""
+def discover_files(raw_dir: Path, sources: dict[str, Any],
+                   synthetic_dir: Path | None = None) -> tuple[list[SourceFile], list[str]]:
+    """List handbook markdown, the PDFs named in sources.yaml and the synthetic old versions.
+
+    Also returns the ids of PDFs listed in sources.yaml but not downloaded.
+    """
     files = [
         SourceFile(p, p.relative_to(raw_dir).as_posix(), "markdown")
         for p in sorted((raw_dir / "handbook").rglob("*.md"))
     ]
+    if synthetic_dir is not None and synthetic_dir.exists():
+        files += [SourceFile(p, f"synthetic/{p.name}", "markdown")
+                  for p in sorted(synthetic_dir.glob("*.md")) if p.name != "README.md"]
     missing = []
     for entry in sources.get("pdfs", []):
         path = raw_dir / "pdfs" / f"{entry['id']}.pdf"
@@ -388,7 +405,8 @@ def extract(src: SourceFile) -> dict[str, Any]:
     return extract_markdown(src.path) if src.source_type == "markdown" else extract_pdf(src.path)
 
 
-def ingest_all(raw_dir: Path, processed_dir: Path, sources: dict[str, Any]) -> Counter[str]:
+def ingest_all(raw_dir: Path, processed_dir: Path, sources: dict[str, Any],
+               synthetic_dir: Path | None = None) -> Counter[str]:
     """Ingest every source file, reusing cached text for files whose hash hasn't changed."""
     processed_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = processed_dir / "manifest.json"
@@ -396,7 +414,7 @@ def ingest_all(raw_dir: Path, processed_dir: Path, sources: dict[str, Any]) -> C
     dates_path = raw_dir / "handbook" / "_dates.json"
     commit_dates = json.loads(dates_path.read_text()) if dates_path.exists() else {}
 
-    files, missing_pdfs = discover_files(raw_dir, sources)
+    files, missing_pdfs = discover_files(raw_dir, sources, synthetic_dir)
     stats: Counter[str] = Counter(missing_pdfs=len(missing_pdfs))
     new_manifest: dict[str, Any] = {}
     records = []
@@ -441,7 +459,8 @@ def load_documents(processed_dir: Path) -> list[dict[str, Any]]:
 def print_summary(stats: Counter[str], records: list[dict[str, Any]]) -> None:
     """Print run counts plus a breakdown of the corpus."""
     print("Run:", ", ".join(f"{k}={v}" for k, v in sorted(stats.items())))
-    print("By source type:", dict(Counter(r["source_type"] for r in records)))
+    print("By source type:", dict(Counter(r["source_type"] for r in records)),
+          f"(synthetic old versions: {sum(r['synthetic_old_version'] for r in records)})")
     print("By department: ", dict(Counter(r["department"] for r in records).most_common()))
     multi = defaultdict(list)
     for r in records:
@@ -461,7 +480,8 @@ def main() -> None:
     paths = load_config(args.config)["paths"]
     sources = read_yaml(resolve_path(paths["sources"]))
     processed_dir = resolve_path(paths["processed_dir"])
-    stats = ingest_all(resolve_path(paths["raw_dir"]), processed_dir, sources)
+    stats = ingest_all(resolve_path(paths["raw_dir"]), processed_dir, sources,
+                       resolve_path(paths["synthetic_dir"]))
     print_summary(stats, load_documents(processed_dir))
 
 

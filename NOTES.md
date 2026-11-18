@@ -114,3 +114,33 @@ One entry per phase: what was built, key decisions, results so far.
 - Spot check "How many days do I have to submit an expense claim?": vector search ranks the "90 days"
   chunk 1st; BM25 ranks it 3rd, pulled off course by common words ("days", "have") and an outdated legacy
   agreement. For the exact term "Navan", BM25's top 3 are all relevant. -> motivation for hybrid (run 6).
+
+## Phase 5: Test set (2026-11-17), approved
+
+**Built**
+- `eval/questions_source.yaml`: 80 questions (20 lookup, 15 paraphrase, 10 exact_term, 10 multi_doc,
+  15 outdated_version, 10 no_answer), each with an expected answer and exact supporting quote(s).
+- `src/testset.py`: validates everything against the corpus and writes `eval/questions.jsonl`,
+  `eval/questions_review.md` (table) and `eval/gold_review.md` (quotes + gold chunks + checks).
+- `data/synthetic/`: 8 deliberately outdated copies of handbook pages (10 changed facts), committed,
+  read by ingestion via `paths.synthetic_dir`. Corpus is now 388 documents / 2,325 baseline chunks.
+- `tests/test_testset.py` (9 tests) + 1 ingestion test (62 total).
+
+**Key decisions**
+- **Automatic gold verification instead of trust:** a quote must appear in its gold doc AND inside a
+  single baseline chunk; for non-outdated questions it must NOT appear in any other doc. This rejected
+  10 first drafts whose facts were repeated unchanged inside a synthetic old copy.
+- **`gold_evidence` (doc + quote) added to each question** so Phase 6 can score chunk-level hits under
+  any chunking strategy (chunk ids change between runs; quotes don't). `gold_chunk_ids` = baseline chunks.
+- **Two kinds of outdated cases:** 5 real version pairs (old text identical -> tests ranking only) and
+  10 synthetic changed facts (old copy gives a wrong answer -> tests answer correctness too).
+  `outdated_doc_ids` lists the old versions per question for the stale-rate metric.
+- **No-answer topics proven absent** with regex checks scoped to the relevant organisation; the closest
+  BM25 hits are recorded (they're same-organisation documents, so declining is genuinely hard).
+- **Stratified split, seed 42:** 55 tune / 25 test with every type proportionally in test
+  (6/5/3/3/5/3). Test questions are not to be used for any tuning.
+- PDF questions always name the organisation (corpus option A: GitLab + labelled external PDFs).
+
+**Known limitations**
+- 17/80 questions use GitLab's expenses page (the richest policy page); results lean on that document.
+- md-04 and md-08 both combine Middlesex + Waikato leave facts.
