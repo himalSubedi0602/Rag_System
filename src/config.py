@@ -73,6 +73,9 @@ def validate_config(cfg: dict[str, Any]) -> None:
         # overlap >= size would make the chunker step forward by 0 tokens and loop forever
         raise ConfigError("chunking.chunk_overlap must be >= 0 and smaller than chunk_size")
 
+    if not 0 <= chunking["min_section_tokens"] < chunking["chunk_size"]:
+        raise ConfigError("chunking.min_section_tokens must be >= 0 and smaller than chunk_size")
+
     retrieval = cfg["retrieval"]
     if not 0 < retrieval["final_k"] <= retrieval["top_k_each"]:
         raise ConfigError("retrieval.final_k must be between 1 and retrieval.top_k_each")
