@@ -2,9 +2,16 @@
 
 Run:  python -m src.testset
   - checks every evidence quote really appears in its gold document (and in one baseline chunk)
-  - checks non-outdated quotes don't ALSO appear in other documents (that would make gold ambiguous)
+  - a quote may also appear in OTHER VERSIONS of the same page (they become acceptable_doc_ids,
+    since retrieving them still gives the right answer); anywhere else it would make gold ambiguous
+  - outdated_version: the quote must contain the changed fact, i.e. appear in NO old version
+  - history: the gold doc is an old version and the quote must not appear in the current one
+  - real_pair: like outdated_version, but the old versions are REAL documents; `old_evidence` gives the
+    old wording, which must appear in every real old version that lacks the current quote
+  - a normal question's quote must not be altered in a synthetic old copy (that would silently turn it
+    into an outdated-version test)
   - checks no_answer topics are truly absent and records the closest BM25 hits as proof
-  - assigns a stratified tune/test split with a fixed seed
+  - keeps every frozen split; new questions get a stratified split (fixed seed)
   - writes eval/questions.jsonl, eval/gold_review.md and eval/questions_review.md
 Exits with an error listing every problem, and writes nothing, if any check fails.
 """
@@ -28,9 +35,12 @@ from src.index import BM25Index
 from src.ingest import load_documents
 
 SOURCE_PATH = "eval/questions_source.yaml"
-EXPECTED_COUNTS = {"lookup": 20, "paraphrase": 15, "exact_term": 10, "multi_doc": 10,
-                   "outdated_version": 15, "no_answer": 10}
-TEST_SIZE = 25
+CHANGES_PATH = "data/synthetic/changes.yaml"
+EXPECTED_COUNTS = {"lookup": 25, "paraphrase": 15, "exact_term": 10, "multi_doc": 10,
+                   "outdated_version": 39, "real_pair": 2, "history": 12, "no_answer": 10}
+TEST_SHARE = 25 / 80          # share of NEW questions that go to test (same as the original split)
+MIN_OUTDATED_TUNE = 20        # enough outdated questions to measure stale rate while tuning
+MIN_OUTDATED_TEST = 12        # ... and for the one final test run
 SPLIT_SEED = 42
 
 
@@ -85,6 +95,26 @@ def stratified_split(questions: list[dict[str, Any]], test_size: int, seed: int)
 # Validation + building
 # ---------------------------------------------------------------------------
 
+def assign_splits(questions: list[dict[str, Any]]) -> dict[str, str]:
+    """Keep every frozen split; give questions without one a stratified split of their own."""
+    split = {q["id"]: q["split"] for q in questions if q.get("split")}
+    new = [q for q in questions if not q.get("split")]
+    if new:
+        split.update(stratified_split(new, round(len(new) * TEST_SHARE), SPLIT_SEED))
+    return split
+
+
+def old_quote(quote: str, replacements: list[list[str]]) -> str | None:
+    """Apply a synthetic file's [current, old] replacements to a (current) quote, on normalized text.
+    Returns the outdated wording of the quote, or None if none of the changes touch it."""
+    text = normalize(quote)
+    for current, old in replacements:
+        cur, new = normalize(current).strip("| "), normalize(old).strip("| ")  # table pipes vary
+        if cur in text:
+            text = text.replace(cur, new)
+    return None if text == normalize(quote) else text
+
+
 def check_structure(source: dict[str, Any]) -> list[str]:
     """Ids unique, required fields present, counts per type as specified."""
     errors = []
@@ -93,8 +123,11 @@ def check_structure(source: dict[str, Any]) -> list[str]:
     if dupes:
         errors.append(f"duplicate ids: {dupes}")
     counts = Counter(q["type"] for q in questions)
-    if dict(counts) != EXPECTED_COUNTS:
+    if EXPECTED_COUNTS and dict(counts) != EXPECTED_COUNTS:
         errors.append(f"type counts {dict(counts)} != expected {EXPECTED_COUNTS}")
+    bad = [q["id"] for q in questions if q.get("split") not in (None, "tune", "test")]
+    if bad:
+        errors.append(f"invalid split values: {bad}")
     for q in questions:
         if q["type"] == "no_answer":
             if not q.get("absent"):
@@ -106,9 +139,15 @@ def check_structure(source: dict[str, Any]) -> list[str]:
     return errors
 
 
-def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[str, Any]]
+def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[str, Any]],
+          changes: dict[str, list[list[str]]] | None = None
           ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
-    """Validate every question against the corpus. Returns (questions, review_rows, errors)."""
+    """Validate every question against the corpus. Returns (questions, review_rows, errors).
+
+    `changes` maps a synthetic doc_id to its [current, old] replacements (from changes.yaml); it is
+    used to work out what each outdated_version quote says in the old version (outdated_evidence).
+    """
+    changes = changes or {}
     errors = check_structure(source)
     docs_by_id = {d["doc_id"]: d for d in docs}
     norm_docs = {d["doc_id"]: normalize(doc_text(d)) for d in docs}
@@ -121,13 +160,21 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
         groups[d["version_group"]].append(d["doc_id"])
     bm25 = BM25Index(chunks, add_prefix=True)
 
-    split = stratified_split(source["questions"], TEST_SIZE, SPLIT_SEED)
+    split = assign_splits(source["questions"])
+    outdated_tune = sum(1 for q in source["questions"]
+                        if q["type"] == "outdated_version" and split[q["id"]] == "tune")
+    outdated_test = sum(1 for q in source["questions"]
+                        if q["type"] == "outdated_version" and split[q["id"]] == "test")
+    if EXPECTED_COUNTS and outdated_tune < MIN_OUTDATED_TUNE:
+        errors.append(f"only {outdated_tune} outdated_version questions in tune (need {MIN_OUTDATED_TUNE})")
+    if EXPECTED_COUNTS and outdated_test < MIN_OUTDATED_TEST:
+        errors.append(f"only {outdated_test} outdated_version questions in test (need {MIN_OUTDATED_TEST})")
     built, review = [], []
     for q in source["questions"]:
         qid, qtype = q["id"], q["type"]
         row = {"id": qid, "type": qtype, "split": split[qid], "question": q["question"],
                "answer": q.get("answer", source["no_answer_text"]), "evidence": [], "notes": []}
-        gold_docs, gold_chunks, outdated_docs = [], [], []
+        gold_docs, gold_chunks, outdated_docs, acceptable, outdated_evidence = [], [], [], [], []
 
         for ev in q.get("evidence", []):
             doc_id, quote = ev["doc"], normalize(ev["quote"])
@@ -140,30 +187,67 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
             hits = [c["chunk_id"] for c in chunks_by_doc[doc_id] if quote in normalize(c["text"])]
             if not hits:
                 errors.append(f"{qid}: quote is split across chunks in {doc_id} (shorten it): {ev['quote']!r}")
-            if not docs_by_id[doc_id]["is_current"]:
+            is_current = docs_by_id[doc_id]["is_current"]
+            if qtype == "history" and is_current:
+                errors.append(f"{qid}: history question must point at an OLD version, not {doc_id}")
+            if qtype != "history" and not is_current:
                 errors.append(f"{qid}: gold doc {doc_id} is not the current version")
 
-            # Same quote elsewhere? Expected only for outdated_version (real old copies).
             elsewhere = [d for d, text in norm_docs.items() if d != doc_id and quote in text]
-            old_versions = [d for d in groups[docs_by_id[doc_id]["version_group"]]
-                            if d != doc_id and not docs_by_id[d]["is_current"]]
+            siblings = [d for d in groups[docs_by_id[doc_id]["version_group"]] if d != doc_id]
+            unrelated = [d for d in elsewhere if d not in siblings]
+            if unrelated:
+                errors.append(f"{qid}: quote also appears in unrelated docs {unrelated}; gold would be ambiguous")
             if qtype == "outdated_version":
+                old_versions = [d for d in siblings if docs_by_id[d]["version_status"] == "superseded"]
                 if not old_versions:
-                    errors.append(f"{qid}: gold doc {doc_id} has no outdated version in its version group")
-                outdated_docs += old_versions
+                    errors.append(f"{qid}: gold doc {doc_id} has no superseded version in its version group")
                 same = [d for d in old_versions if d in elsewhere]
-                changed = [d for d in old_versions if d not in elsewhere]
                 if same:
-                    row["notes"].append(f"same text in old version(s): {', '.join(same)}")
-                if changed:
-                    row["notes"].append(f"fact differs in old version(s): {', '.join(changed)}")
-            elif elsewhere:
-                errors.append(f"{qid}: quote also appears in {elsewhere}; gold would be ambiguous")
+                    errors.append(f"{qid}: quote also appears in old version(s) {same}; it must contain the changed fact")
+                outdated_docs += old_versions
+                for old_doc in old_versions:
+                    old = old_quote(ev["quote"], changes.get(old_doc, []))
+                    if old is None or old not in norm_docs[old_doc]:
+                        errors.append(f"{qid}: can't find the outdated wording of the quote in {old_doc}")
+                        continue
+                    outdated_evidence.append({"doc_id": old_doc, "quote": old})
+                    row["notes"].append(f"old version {old_doc} says: \"{old}\"")
+            elif qtype == "real_pair":
+                old_versions = [d for d in siblings if docs_by_id[d]["version_status"] == "superseded"
+                                and d not in elsewhere]          # real old versions WITHOUT the current wording
+                acceptable += [d for d in siblings if d in elsewhere]
+                if not old_versions:
+                    errors.append(f"{qid}: no real old version states a different fact")
+                for old_doc in (old_versions if q.get("stale_level", "fact") == "fact" else []):
+                    olds = [normalize(o["quote"]) for o in q.get("old_evidence", []) if normalize(o["quote"]) in norm_docs[old_doc]]
+                    if not olds:
+                        errors.append(f"{qid}: old_evidence not found in old version {old_doc}")
+                        continue
+                    outdated_evidence.append({"doc_id": old_doc, "quote": olds[0]})
+                outdated_docs += old_versions
+                row["notes"].append(f"real old version(s) with the old rule: {', '.join(old_versions)}")
+            elif qtype == "history":
+                current = [d for d in siblings if docs_by_id[d]["is_current"]]
+                if any(d in elsewhere for d in current):
+                    errors.append(f"{qid}: history quote also appears in the current version {current}")
+                row["notes"].append(f"current version (should NOT be preferred here): {', '.join(current)}")
+            else:
+                same = [d for d in elsewhere if d in siblings]
+                acceptable += same
+                altered = [d for d in siblings if d.startswith("syn:") and d not in elsewhere]
+                if altered:
+                    errors.append(f"{qid}: a synthetic change alters this quote in {altered}; "
+                                  "make it an outdated_version question or pick another quote")
+                if same:
+                    row["notes"].append(f"same answer in other version(s), acceptable: {', '.join(same)}")
 
             gold_docs.append(doc_id)
             gold_chunks += hits
+            item_acceptable = ([d for d in elsewhere if d in siblings]
+                               if qtype not in ("outdated_version", "history") else [])
             row["evidence"].append({"doc": doc_id, "quote": ev["quote"], "chunks": hits,
-                                    "in_text": find_original(raw_docs[doc_id], ev["quote"])})
+                                    "acceptable": item_acceptable})
 
         for check in q.get("absent", []):
             pattern = re.compile(check["pattern"], re.IGNORECASE)
@@ -181,16 +265,15 @@ def build(source: dict[str, Any], docs: list[dict[str, Any]], chunks: list[dict[
             "id": qid, "question": q["question"], "question_type": qtype,
             "gold_doc_ids": sorted(set(gold_docs)), "gold_chunk_ids": sorted(set(gold_chunks)),
             "expected_answer": row["answer"], "split": split[qid],
-            "gold_evidence": [{"doc_id": e["doc"], "quote": e["quote"]} for e in q.get("evidence", [])],
+            "gold_evidence": [{"doc_id": e["doc"], "quote": e["quote"], "acceptable_doc_ids": e["acceptable"]}
+                              for e in row["evidence"]],
             "outdated_doc_ids": sorted(set(outdated_docs)),
+            "acceptable_doc_ids": sorted(set(acceptable) - set(gold_docs)),
+            "outdated_evidence": outdated_evidence,
+            "stale_level": q.get("stale_level", "fact") if qtype in ("outdated_version", "real_pair") else None,
         })
         review.append(row)
     return built, review, errors
-
-
-def find_original(text: str, quote: str) -> bool:
-    """True if the quote appears verbatim (before normalization). Only informational."""
-    return quote in text
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +288,7 @@ def md_cell(text: str) -> str:
 def write_questions_review(review: list[dict[str, Any]], path: Path) -> None:
     """One readable table with every question, for approval."""
     lines = ["# Test set for review", "",
+             '> **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).', "",
              f"{len(review)} questions: " + ", ".join(f"{t} {n}" for t, n in Counter(r['type'] for r in review).items()),
              f"Split: tune {sum(r['split'] == 'tune' for r in review)}, test {sum(r['split'] == 'test' for r in review)}", "",
              "| ID | Type | Split | Question | Expected answer | Gold document(s) |",
@@ -240,7 +324,9 @@ def main() -> None:
     source = yaml.safe_load(open(resolve_path(SOURCE_PATH), encoding="utf-8"))
     docs = load_documents(resolve_path(cfg["paths"]["processed_dir"]))
     chunks = load_chunks(chunks_path(cfg))
-    questions, review, errors = build(source, docs, chunks)
+    specs = yaml.safe_load(open(resolve_path(CHANGES_PATH), encoding="utf-8"))
+    changes = {f"syn:{s['file']}": s["replace"] for s in specs}
+    questions, review, errors = build(source, docs, chunks, changes)
 
     if errors:
         print(f"{len(errors)} problem(s); nothing written:")
@@ -258,8 +344,9 @@ def main() -> None:
     print(f"OK: {len(questions)} questions validated against {len(docs)} documents / {len(chunks)} chunks")
     print("By type:  ", dict(Counter(q["question_type"] for q in questions)))
     print("By split: ", dict(Counter(q["split"] for q in questions)))
-    test_by_type = Counter(q["question_type"] for q in questions if q["split"] == "test")
-    print("Test split by type:", dict(test_by_type))
+    for split_name in ("tune", "test"):
+        by_type = Counter(q["question_type"] for q in questions if q["split"] == split_name)
+        print(f"{split_name.capitalize()} split by type:", dict(by_type))
     print("Wrote eval/questions.jsonl, eval/questions_review.md, eval/gold_review.md")
 
 

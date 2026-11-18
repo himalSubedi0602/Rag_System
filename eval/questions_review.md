@@ -1,7 +1,9 @@
 # Test set for review
 
-80 questions: lookup 20, paraphrase 15, exact_term 10, multi_doc 10, outdated_version 15, no_answer 10
-Split: tune 55, test 25
+> **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).
+
+123 questions: lookup 25, paraphrase 15, exact_term 10, multi_doc 10, outdated_version 39, real_pair 2, history 12, no_answer 10
+Split: tune 84, test 39
 
 | ID | Type | Split | Question | Expected answer | Gold document(s) |
 |---|---|---|---|---|---|
@@ -60,11 +62,11 @@ Split: tune 55, test 25
 | md-08 | multi_doc | tune | How many days of annual leave do academic staff get at Middlesex University, and within what period must University of Waikato staff use their annual leave? | Middlesex academic and research staff get 35 days per year; Waikato staff are expected to take their leave within 12 months of it becoming due. | pdf:middlesex-annual-leave<br>pdf:waikato-annual-leave |
 | md-09 | multi_doc | test | What is GitLab's limit for a single taxi trip, and what mileage rate does Brunel University London pay after 10,000 miles? | GitLab: $150 for a single trip ($300 round trip). Brunel: 25p per mile after 10,000 miles. | hb:finance/expenses<br>pdf:brunel-travel-expenses |
 | md-10 | multi_doc | tune | What is RED data at GitLab, and how often must access to Red Data systems be reviewed? | RED is GitLab's most sensitive restricted data with explicitly approved, privileged access; access to Red Data systems is reviewed annually. | hb:security/policies_and_standards/data-classification-standard<br>hb:security/security-assurance/security-compliance/access-reviews |
-| ov-01 | outdated_version | test | After the initial term, how much notice is needed to terminate GitLab's Technology Partner Agreement? | Sixty (60) days' prior written notice. | hb:legal/technology-partner-agreement |
-| ov-02 | outdated_version | tune | How can either party terminate the GitLab Testing Agreement for convenience? | Immediately, upon written notice to the other party (email is sufficient). | hb:legal/testing-agreement |
-| ov-03 | outdated_version | tune | When will the University of Cambridge's Hybrid Working Policy be reviewed? | 12 months after the implementation date (and periodically after that). | pdf:cambridge-hybrid-working-2023 |
-| ov-04 | outdated_version | test | Under North Lanarkshire Council's IT acceptable use policy, is personal use of council IT monitored? | Yes, all personal use is subject to the same monitoring as business use. | pdf:north-lanarkshire-it-acceptable-use-v5 |
-| ov-05 | outdated_version | tune | Which law governs GitLab's Vendor Terms and Conditions? | The laws of California, U.S.A. (courts in San Francisco). | hb:finance/procurement/vendor-guidelines/vendor-agreement |
+| lk-21 | lookup | test | What is the emergency medical benefit limit under GitLab's business travel insurance? | Up to $10,000. | hb:finance/travel |
+| lk-22 | lookup | tune | How can either party terminate the GitLab Testing Agreement for convenience? | Immediately, upon written notice to the other party (email is sufficient). | hb:legal/testing-agreement |
+| lk-23 | lookup | tune | When will the University of Cambridge's Hybrid Working Policy be reviewed? | 12 months after the implementation date (and periodically after that). | pdf:cambridge-hybrid-working-2023 |
+| lk-24 | lookup | test | Under North Lanarkshire Council's IT acceptable use policy, is personal use of council IT monitored? | Yes, all personal use is subject to the same monitoring as business use. | pdf:north-lanarkshire-it-acceptable-use-v5 |
+| lk-25 | lookup | tune | How many free coaching sessions per year does Modern Health give GitLab team members? | 6 per year. | hb:total-rewards/benefits/modern-health |
 | ov-06 | outdated_version | tune | How long after the purchase date can I submit a GitLab expense claim and still be reimbursed without manager approval? | Up to 90 days; claims over 90 days are not reimbursed unless approved by the manager. | hb:finance/expenses |
 | ov-07 | outdated_version | tune | What is GitLab's nightly hotel limit for business travel? | $300 USD per night including tax, for standard rooms. | hb:finance/expenses |
 | ov-08 | outdated_version | tune | How much can I spend on meals per day while travelling for GitLab? | Up to $120 USD (or local equivalent) per day. | hb:finance/expenses |
@@ -75,6 +77,49 @@ Split: tune 55, test 25
 | ov-13 | outdated_version | tune | How long do I have to exercise vested GitLab stock options after leaving the company? | 90 days after termination. | hb:total-rewards/stock-options |
 | ov-14 | outdated_version | tune | How often does GitLab run phishing simulation campaigns? | At least once each fiscal quarter. | hb:security/security-assurance/governance/phishing |
 | ov-15 | outdated_version | test | After how many days of unreported absence can a GitLab team member be terminated for job abandonment? | Three consecutive workdays with no calendar entry and no contact with their supervisor (unless otherwise required by law). | hb:people-policies |
+| ov-16 | outdated_version | tune | How far in advance should GitLab team members book international flights? | At least 21 days in advance. | hb:finance/expenses |
+| ov-17 | outdated_version | tune | What is GitLab's daily limit for parking and tolls on business travel? | $150 per day. | hb:finance/expenses |
+| ov-18 | outdated_version | test | What is GitLab's yearly reimbursement limit for business cards? | $60 per year (ordered via Moo). | hb:finance/expenses |
+| ov-19 | outdated_version | test | When can I expense dry cleaning during a GitLab business trip? | If the stay is over 5 days. | hb:finance/expenses |
+| ov-20 | outdated_version | test | For applications where a password is the only authentication, how often must GitLab passwords expire? | Within a maximum of 90 calendar days. | hb:security/policies_and_standards/password-standard |
+| ov-21 | outdated_version | tune | After how many failed login attempts must a GitLab system temporarily lock the account? | After 10 failed attempts. | hb:security/policies_and_standards/password-standard |
+| ov-22 | outdated_version | tune | What is the maximum lifetime of a GitLab group access token? | 1 year. | hb:security/policies_and_standards/token-management-standard |
+| ov-23 | outdated_version | test | When do unexercised GitLab stock options expire? | 10 years after they were issued (if they haven't expired earlier through termination). | hb:total-rewards/stock-options |
+| ov-24 | outdated_version | test | How long can a new Support on-call alert go unacknowledged before the Support Manager on-call is alerted? | 10 minutes (Senior Support Managers are alerted after a further 5 minutes). | hb:support/on-call |
+| ov-25 | outdated_version | tune | During a long customer emergency call, how often should a GitLab Support engineer plan to take a break? | About every 90 minutes. | hb:support/on-call |
+| ov-26 | outdated_version | tune | How long can a business trip last and still be covered by GitLab's travel insurance? | Less than 180 days. | hb:finance/travel |
+| ov-27 | outdated_version | tune | What is the maximum baggage protection under GitLab's business travel insurance? | $2,500. | hb:finance/travel |
+| ov-28 | outdated_version | tune | How many free therapy sessions per year does Modern Health give GitLab team members? | 6 per year. | hb:total-rewards/benefits/modern-health |
+| ov-29 | outdated_version | tune | Up to what age are team members' children eligible for Modern Health? | Up to age 27. | hb:total-rewards/benefits/modern-health |
+| ov-30 | outdated_version | tune | How much of base salary does GitLab's US short- and long-term disability insurance replace? | Up to 66.7% of base salary. | hb:total-rewards/benefits/general-and-entity-benefits/inc-benefits-us |
+| ov-31 | outdated_version | tune | How much dental coverage per year do GitLab UK team members get? | £400 per year (80% reimbursement). | hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk |
+| ov-32 | outdated_version | tune | How long does GitLab's recruiting team take to review a referral submission? | 5 business days (per the SLA). | hb:hiring/referral-operations |
+| ov-33 | outdated_version | tune | How long does GitLab retain production backup test records? | 1 year. | hb:security/policies_and_standards/records-retention-deletion |
+| ov-34 | outdated_version | tune | How long does GitLab keep risk treatment plans? | 3 years. | hb:security/policies_and_standards/records-retention-deletion |
+| ov-35 | outdated_version | test | How long should a GitLab manager try to reach an absent team member before contacting their People Business Partner? | 24 hours. | hb:people-policies |
+| ov-36 | outdated_version | tune | If someone I referred to GitLab reached team interviews but wasn't hired, how long should I wait before referring them again? | 6 months. | hb:hiring/referral-process |
+| ov-37 | outdated_version | test | Who has to approve a GitLab travel booking that goes over the policy limits? | The manager: manager approval must be attached to the claim. | hb:finance/expenses |
+| ov-38 | outdated_version | tune | Whose approval is needed if a GitLab team member books more than 5 co-working days in a month? | Manager AND Finance approval, obtained before submitting expenses. | hb:finance/expenses |
+| ov-39 | outdated_version | test | Can I expense room service as a meal during a GitLab business trip? | Yes, room service is allowable as a meal (e.g. breakfast, lunch or dinner). | hb:finance/expenses |
+| ov-40 | outdated_version | tune | Can I give a gift card as a gift and expense it at GitLab? | No, cash and cash equivalents such as gift cards are not allowed. | hb:finance/expenses |
+| ov-41 | outdated_version | test | When a group of GitLab team members can't split a meal bill, who should pay it? | The most senior team member present pays and submits it for reimbursement. | hb:finance/expenses |
+| ov-42 | outdated_version | test | Do I need pre-approval before claiming co-working space costs at GitLab? | Yes, pre-approval is needed before submitting claims. | hb:finance/expenses |
+| ov-43 | outdated_version | test | How much optical coverage per year do GitLab UK team members get? | £200 per year (80% reimbursement) plus £25 for annual eye tests. | hb:total-rewards/benefits/general-and-entity-benefits/ltd-benefits-uk |
+| ov-44 | outdated_version | tune | What discount on legal fees does GitLab's US legal services benefit provide? | 25% fee discounts (plus free 30-minute consultations). | hb:total-rewards/benefits/general-and-entity-benefits/inc-benefits-us |
+| rp-01 | real_pair | tune | Under the GitLab Testing Agreement, is the customer required to give feedback on testing features? | No, it is optional: the customer MAY provide feedback (versions v1-v4 said the customer WILL provide it). | hb:legal/testing-agreement |
+| rp-02 | real_pair | test | Under the University of Cambridge's Hybrid Working Policy, where must the remote working environment be? | Within the UK (the 2023 policy states the remote working environment will be based within the UK; the 2022 draft's definition did not). | pdf:cambridge-hybrid-working-2023 |
+| hi-01 | history | test | What was GitLab's nightly hotel limit in its 2023 travel and expense policy? | $250 USD per night. | syn:expenses-2023 |
+| hi-02 | history | tune | What minimum password length did GitLab's 2022 password standard require? | 8 characters. | syn:password-standard-2022 |
+| hi-03 | history | tune | How often did GitLab run phishing simulations under its 2022 phishing program? | At least twice per fiscal year. | syn:phishing-program-2022 |
+| hi-04 | history | tune | How long was US parental leave at GitLab under the 2022 leave policy? | 12 weeks. | syn:us-leave-of-absence-2022 |
+| hi-05 | history | test | Under GitLab's 2021 equity policy, how long did departing team members have to exercise vested options? | 30 days after termination. | syn:stock-options-2021 |
+| hi-06 | history | tune | Under GitLab's 2023 expense policy, how long after purchase could an expense claim be submitted without manager approval? | 60 days. | syn:expenses-2023 |
+| hi-07 | history | tune | In GitLab's 2023 token management standard, what was the maximum expiry for personal access tokens? | 90 days. | syn:token-management-standard-2023 |
+| hi-08 | history | tune | Under GitLab's 2022 referral process, for how long did a referral count as yours? | 12 months. | syn:referral-process-2022 |
+| hi-09 | history | tune | Under GitLab's 2022 people policies, after how many days of unreported absence could a team member be terminated for job abandonment? | Five consecutive workdays. | syn:people-policies-2022 |
+| hi-10 | history | tune | In GitLab's 2023 Support on-call guide, how long could a new alert go unacknowledged before the Support Manager on-call was alerted? | 15 minutes. | syn:support-on-call-2023 |
+| hi-11 | history | tune | Under GitLab's 2022 business travel insurance, how long could a trip last and still be covered? | Less than 90 days. | syn:travel-safety-2022 |
+| hi-12 | history | tune | Under GitLab's 2023 expense policy, could room service be expensed as a meal? | No, room service was not reimbursable as a meal. | syn:expenses-2023 |
 | na-01 | no_answer | tune | What is GitLab's dress code for video calls with customers? | I couldn't find this in the documents. | (none: should decline) |
 | na-02 | no_answer | test | What is the fire evacuation procedure for Lancaster City Council staff? | I couldn't find this in the documents. | (none: should decline) |
 | na-03 | no_answer | tune | How much does a staff parking permit cost at Middlesex University? | I couldn't find this in the documents. | (none: should decline) |
