@@ -6,6 +6,7 @@ run_name: default
 seed: 42
 
 paths:
+  sources: data/sources.yaml   # corpus source list (committed)
   raw_dir: data/raw
   processed_dir: data/processed
   chroma_dir: data/chroma

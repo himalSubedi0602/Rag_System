@@ -1,0 +1,146 @@
+# Corpus source list. Committed to git; the downloaded files in data/raw/ are NOT.
+# Download:  python -m src.download_data
+# Ingest:    python -m src.ingest
+
+# ---------------------------------------------------------------
+# GitLab public handbook (markdown), https://gitlab.com/gitlab-com/content-sites/handbook
+# ---------------------------------------------------------------
+handbook:
+  project: gitlab-com/content-sites/handbook
+  ref: main
+  base_path: content/handbook
+  # Pattern rules: "dir/" = everything under dir; "dir/*.md" = files directly in dir only;
+  # anything else = one exact file.
+  include:
+    - people-policies/
+    - total-rewards/
+    - hiring/
+    - finance/
+    - legal/
+    - security/policies_and_standards/
+    - security/security-and-technology-policies/
+    - security/security-and-technology-policy-exception.md
+    - security/security-assurance/
+    - security/product-security/vulnerability-management/
+    - support/*.md
+    - support/license-and-renewals/
+
+# ---------------------------------------------------------------
+# Simulated access control (used by the role picker in Phase 9; evaluation ignores it).
+# A user can see a document if their role is in access_roles, or access_roles has "all_employees".
+# ---------------------------------------------------------------
+access_roles:
+  default: [all_employees]
+  by_department:
+    legal: [legal]
+    finance: [finance]
+
+# ---------------------------------------------------------------
+# Public policy PDFs from UK / NZ public bodies and universities.
+# id         -> saved as data/raw/pdfs/<id>.pdf, doc_id becomes "pdf:<id>"
+# title      -> organisation is part of the title, since several orgs have similar policies
+# updated_date (optional) -> otherwise taken from the PDF's modification date
+# version_group / is_current (optional) -> set only for real old/current pairs
+# ---------------------------------------------------------------
+pdfs:
+  # Annual leave
+  - id: st-andrews-annual-leave
+    title: "University of St Andrews: Annual Leave Policy"
+    department: people
+    url: https://www.st-andrews.ac.uk/policy/staff-annual-leave-and-other-absence/annual-leave.pdf
+  - id: waikato-annual-leave
+    title: "University of Waikato: Annual Leave Management Policy"
+    department: people
+    url: https://www.waikato.ac.nz/assets/Uploads/About-us/Governance-and-reporting/Key-documents-and-policies/Print-version/Annual-Leave-Management-Policy.pdf
+  - id: st-marys-annual-leave-2014
+    title: "St Mary's University: Annual Leave Policy and Procedure (2014)"
+    department: people
+    url: https://www.stmarys.ac.uk/jobs/docs/Annual-Leave-Policy-Mar14.pdf
+  - id: middlesex-annual-leave
+    title: "Middlesex University: Annual Leave Policy"
+    department: people
+    url: https://www.mdx.ac.uk/media/middlesex-university/about-us-pdfs/Annual-Leave-Policy-UET-Approved-010725acc.pdf
+
+  # Sickness absence
+  - id: south-oxon-sickness-absence
+    title: "South Oxfordshire and Vale of White Horse District Councils: Sickness Absence Policy"
+    department: people
+    url: https://www.southoxon.gov.uk/wp-content/uploads/sites/2/2022/12/Sickness-Absence-Policy-Final-updated-November-2022.pdf
+  - id: lancaster-sickness-absence
+    title: "Lancaster City Council: Sickness Absence Policy"
+    department: people
+    url: https://committeeadmin.lancaster.gov.uk/documents/s91115/Sickness%20Absence%20Policy%20V8%202025.pdf
+
+  # Hybrid working (Cambridge has a real draft -> final pair)
+  - id: cambridge-hybrid-working-draft-2022
+    title: "University of Cambridge: Hybrid Working Policy (draft v iii, 2022)"
+    department: people
+    url: https://www.hr.admin.cam.ac.uk/sites/default/files/hybrid_working_policy_v_iii_pdf.pdf
+    version_group: pdf:cambridge-hybrid-working
+    is_current: false
+  - id: cambridge-hybrid-working-2023
+    title: "University of Cambridge: Hybrid Working Policy (2023)"
+    department: people
+    url: https://www.hr.admin.cam.ac.uk/files/hybrid_working_policy_lt_2023.pdf
+    version_group: pdf:cambridge-hybrid-working
+    is_current: true
+  - id: qmul-hybrid-working
+    title: "Queen Mary University of London: Hybrid Working Policy and Procedure"
+    department: people
+    url: https://www.qmul.ac.uk/human-resources/media/hr/policies/Hybrid-Working-Policy-and-Procedure-2026.pdf
+  - id: heriot-watt-hybrid-working
+    title: "Heriot-Watt University: Global Connected Hybrid Working Policy"
+    department: people
+    url: https://www.hw.ac.uk/document-library/hr/global-connected-hybrid-working-policy.pdf
+
+  # Whistleblowing
+  - id: salford-whistleblowing
+    title: "University of Salford: Whistleblowing Policy"
+    department: people
+    url: https://www.salford.ac.uk/sites/default/files/2026-05/whistleblowing-policy-v4.3.pdf
+  - id: roehampton-whistleblowing
+    title: "University of Roehampton: Whistleblowing Policy"
+    department: people
+    url: https://www.roehampton.ac.uk/globalassets/documents/corporate-information/policies/whistleblowing-policy-july-2024.pdf
+  - id: cambridge-whistleblowing
+    title: "University of Cambridge: Whistleblowing Policy"
+    department: people
+    url: https://www.hr.admin.cam.ac.uk/files/whistleblowing_policy_october_2017_v2.pdf
+
+  # Travel and expenses
+  - id: brunel-travel-expenses
+    title: "Brunel University London: Employee Travel and Expenses Policy"
+    department: people
+    url: https://students.brunel.ac.uk/documents/Policies/travel-expenses-policy-final-version-1.9-june-2023-final1.pdf
+
+  # Data protection
+  - id: west-sussex-data-protection
+    title: "West Sussex County Council: Data Protection Policy"
+    department: security
+    url: https://www.westsussex.gov.uk/media/h32dhfoe/wscc_data_protection_policy.pdf
+  - id: havant-data-protection
+    title: "Havant Borough Council: Data Protection Policy"
+    department: security
+    url: https://www.havant.gov.uk/sites/default/files/2025-10/HBC%20Data%20Protection%20Policy.pdf
+  - id: malvern-data-protection-staff
+    title: "Malvern Town Council: Data Protection Policy for Council Staff"
+    department: security
+    url: https://malverntowncouncil.org/wp-content/uploads/2024/06/Data-protection-policy-for-council-staff-May-2024.pdf
+
+  # IT acceptable use (North Lanarkshire has a real v4.11 -> v5.11 pair)
+  - id: luton-it-acceptable-use
+    title: "Luton Council: IT Acceptable Use Policy"
+    department: security
+    url: https://www.luton.gov.uk/sites/default/files/2026-01/it-acceptable-use-policy.pdf
+  - id: north-lanarkshire-it-acceptable-use-v4
+    title: "North Lanarkshire Council: Acceptable Use of IT Policy (v4.11, 2024)"
+    department: security
+    url: https://www.northlanarkshire.gov.uk/sites/default/files/2024-06/Acceptable%20Use%20of%20IT%20Policy%20for%20website1.pdf
+    version_group: pdf:north-lanarkshire-it-acceptable-use
+    is_current: false
+  - id: north-lanarkshire-it-acceptable-use-v5
+    title: "North Lanarkshire Council: Acceptable Use of IT Policy (v5.11, 2026)"
+    department: security
+    url: https://www.northlanarkshire.gov.uk/sites/default/files/2026-07/Acceptable%20Use%20of%20IT%20Policy%20for%20website.pdf
+    version_group: pdf:north-lanarkshire-it-acceptable-use
+    is_current: true
