@@ -4,6 +4,9 @@
 
 run_name: default
 seed: 42
+# Where the embedding model and cross-encoder run: auto (Apple GPU / CUDA if available) or cpu.
+# Generation runs use cpu: Ollama holds the shared GPU memory on this 8 GB machine.
+device: auto
 
 paths:
   sources: data/sources.yaml   # corpus source list (committed)
@@ -51,9 +54,16 @@ reranker:
 
 generation:
   backend: ollama          # one function wraps the LLM call so this can be swapped later
-  model: llama3.1:8b       # placeholder; chosen in Phase 8
+  model: llama3.1:8b       # generator (Phase 8 pre-registration; fallback qwen2.5:7b at most once)
+  judge_model: qwen2.5:7b  # judge for non-numeric answers only; never the generator's own model
+  ollama_url: http://localhost:11434
   temperature: 0.0
-  decline_threshold: null  # null = never decline; tuned in run 10
+  seed: 42
+  num_ctx: 8192            # Ollama's default context is too small for 5 x 500-token chunks + prompt
+  context_chunks: 5        # top retrieved chunks passed to the LLM
+  prompt_version: 1        # at most 2 versions (pre-registered)
+  decline_threshold: null  # cross-encoder score on (question, top-1 chunk); null = the LLM decides alone
+  decline_percentiles: [2.5, 5, 10]   # run 10 candidates: percentiles of answerable tune top-1 scores
 
 eval:
   split: tune              # tune | test (test is used once, at the very end)

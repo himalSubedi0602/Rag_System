@@ -101,11 +101,11 @@ def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: 
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=2)
-def load_reranker(model_name: str, max_length: int):
+def load_reranker(model_name: str, max_length: int, device: str = "auto"):
     """Load the cross-encoder once. It reads (question, chunk) together and outputs a relevance score."""
     from sentence_transformers import CrossEncoder  # slow import; only when really needed
 
-    return CrossEncoder(model_name, max_length=max_length)
+    return CrossEncoder(model_name, max_length=max_length, device=None if device == "auto" else device)
 
 
 def rerank(question: str, candidates: list[tuple[str, float]], bundle: IndexBundle,
@@ -118,7 +118,7 @@ def rerank(question: str, candidates: list[tuple[str, float]], bundle: IndexBund
     head, tail = candidates[:n], candidates[n:]
     if not head:
         return []
-    model = load_reranker(cfg["reranker"]["model"], cfg["reranker"]["max_length"])
+    model = load_reranker(cfg["reranker"]["model"], cfg["reranker"]["max_length"], cfg.get("device", "auto"))
     scores = model.predict([(question, bundle.chunks_by_id[cid]["text"]) for cid, _ in head],
                            batch_size=32, show_progress_bar=False)
     reranked = rank_results([(cid, float(s)) for (cid, _), s in zip(head, scores)])

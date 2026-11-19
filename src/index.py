@@ -53,11 +53,12 @@ def check_max_tokens(model_name: str, actual: int) -> None:
 
 
 @lru_cache(maxsize=2)
-def load_embedder(model_name: str) -> EmbedFn:
-    """Load a sentence-transformers model once and return a function that embeds a list of texts."""
+def load_embedder(model_name: str, device: str = "auto") -> EmbedFn:
+    """Load a sentence-transformers model once and return a function that embeds a list of texts.
+    device "auto" picks Apple GPU (mps), CUDA or CPU automatically; "cpu" forces the CPU."""
     from sentence_transformers import SentenceTransformer  # slow import; only when really needed
 
-    model = SentenceTransformer(model_name)  # picks Apple GPU (mps), CUDA or CPU automatically
+    model = SentenceTransformer(model_name, device=None if device == "auto" else device)
     check_max_tokens(model_name, model.max_seq_length)
 
     def embed(texts: list[str]) -> list[list[float]]:
@@ -319,7 +320,7 @@ def load_or_create_chunks(cfg: dict[str, Any]) -> list[dict[str, Any]]:
 def build_indexes(cfg: dict[str, Any], force: bool = False, verbose: bool = True) -> IndexBundle:
     """Build (or reuse) the vector index and build the BM25 index for one config."""
     chunks = load_or_create_chunks(cfg)
-    embed_fn = load_embedder(cfg["embedding"]["model"])
+    embed_fn = load_embedder(cfg["embedding"]["model"], cfg["device"])
     start = time.perf_counter()
     collection, built = build_vector_index(chunks, cfg, get_client(cfg), embed_fn, force)
     if verbose:
