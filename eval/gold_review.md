@@ -1986,3 +1986,138 @@ Every quote below was checked automatically against the ingested corpus by `pyth
 - `pdf:st-marys-annual-leave-2014`
   > staff members may carry forward up to 10 days leave with the approval of their line manager
   - gold chunks: pdf:st-marys-annual-leave-2014::fixed-500-50::0
+
+## na-11 (no_answer, tune)
+
+**Q:** Which mobile phone models does Luton Borough Council issue to its staff?
+
+**Expected:** I couldn't find this in the documents.
+
+- /iphone|samsung|handset|phone model/ in pdf:luton: 0 matches
+- closest BM25 hits (not answers): pdf:luton-it-acceptable-use (31.6); pdf:luton-it-acceptable-use (26.8); pdf:luton-it-acceptable-use (26.3)
+
+## na-12 (no_answer, tune)
+
+**Q:** How many days of bereavement leave does the University of Waikato give for the death of a grandparent?
+
+**Expected:** I couldn't find this in the documents.
+
+- /bereave|grandparent|tangihanga|funeral/ in pdf:waikato: 0 matches
+- closest BM25 hits (not answers): hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand (48.7); pdf:waikato-annual-leave (46.6); pdf:waikato-annual-leave (40.3)
+
+## na-13 (no_answer, tune)
+
+**Q:** What mileage rate does Heriot-Watt University pay hybrid workers who drive to campus?
+
+**Expected:** I couldn't find this in the documents.
+
+- /mileage|per mile|pence/ in pdf:heriot: 0 matches
+- closest BM25 hits (not answers): pdf:heriot-watt-hybrid-working (45.2); pdf:heriot-watt-hybrid-working (42.6); pdf:heriot-watt-hybrid-working (39.5)
+
+## na-14 (no_answer, tune)
+
+**Q:** What is the maximum fine a Havant Borough Council employee can personally receive for a data breach?
+
+**Expected:** I couldn't find this in the documents.
+
+- /\bfines?\b|penalt/ in pdf:havant: 0 matches
+- closest BM25 hits (not answers): pdf:havant-data-protection (38.6); pdf:havant-data-protection (37.9); pdf:luton-it-acceptable-use (35.7)
+
+## na-15 (no_answer, tune)
+
+**Q:** How much paternity leave does Queen Mary University of London give under its hybrid working policy?
+
+**Expected:** I couldn't find this in the documents.
+
+- /paternity|parental|maternity/ in pdf:qmul: 0 matches
+- closest BM25 hits (not answers): pdf:qmul-hybrid-working (46.5); pdf:qmul-hybrid-working (45.8); pdf:qmul-hybrid-working (45.5)
+
+## na-16 (no_answer, tune)
+
+**Q:** What is the University of St Andrews policy on staff working from abroad?
+
+**Expected:** I couldn't find this in the documents.
+
+- /abroad|overseas|another country|outside the uk/ in pdf:st-andrews: 0 matches
+- closest BM25 hits (not answers): pdf:st-andrews-annual-leave (43.1); pdf:st-marys-annual-leave-2014 (35.7); pdf:st-andrews-annual-leave (35.1)
+
+## na-17 (no_answer, tune)
+
+**Q:** Which tuition costs does Brunel University cover for staff taking a part-time degree?
+
+**Expected:** I couldn't find this in the documents.
+
+- /tuition|degree|course fee/ in pdf:brunel: 0 matches
+- closest BM25 hits (not answers): pdf:brunel-travel-expenses (31.1); pdf:brunel-travel-expenses (31.0); pdf:brunel-travel-expenses (30.4)
+
+## na-18 (no_answer, tune)
+
+**Q:** Does Malvern Hills District Council allow staff to use personal email for council business?
+
+**Expected:** I couldn't find this in the documents.
+
+- /personal e-?mail|private e-?mail|home e-?mail/ in pdf:malvern: 0 matches
+- closest BM25 hits (not answers): pdf:malvern-data-protection-staff (41.0); pdf:malvern-data-protection-staff (34.9); pdf:north-lanarkshire-it-acceptable-use-v4 (34.1)
+
+## na-19 (no_answer, tune)
+
+**Q:** How many days of paid jury service leave does the University of Waikato provide?
+
+**Expected:** I couldn't find this in the documents.
+
+- /jury/ in pdf:waikato: 0 matches
+- closest BM25 hits (not answers): pdf:waikato-annual-leave (34.7); hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand (34.5); hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-australia (31.1)
+
+## na-20 (no_answer, tune)
+
+**Q:** Which language-learning apps does GitLab reimburse for team members?
+
+**Expected:** I couldn't find this in the documents.
+
+- /duolingo|language[- ]learning|language course|language lesson/ in hb:: 0 matches
+- closest BM25 hits (not answers): hb:support/support-engineer-responsibilities (19.2); hb:support (18.1); hb:legal/ethics-compliance-program/learning-content-accessibility-guidelines (18.0)
+
+## na-21 (no_answer, tune)
+
+**Q:** What is the dress code for staff at the University of Roehampton?
+
+**Expected:** I couldn't find this in the documents.
+
+- /dress code|attire|uniform|clothing/ in pdf:roehampton: 0 matches
+- closest BM25 hits (not answers): pdf:roehampton-whistleblowing (38.3); pdf:roehampton-whistleblowing (36.8); pdf:roehampton-whistleblowing (35.9)
+
+## na-22 (no_answer, tune)
+
+**Q:** What time does the GitLab Support team's weekly all-hands meeting start?
+
+**Expected:** I couldn't find this in the documents.
+
+- /all-hands|all hands/ in hb:support: 0 matches
+- closest BM25 hits (not answers): hb:support (25.3); hb:support/support-engineer-responsibilities (24.4); hb:support/support-engineer-responsibilities (24.3)
+
+## na-23 (no_answer, tune)
+
+**Q:** How many paid days off does St Mary's University give staff for moving house?
+
+**Expected:** I couldn't find this in the documents.
+
+- /moving house|house move|removal|relocat/ in pdf:st-marys: 0 matches
+- closest BM25 hits (not answers): pdf:st-marys-annual-leave-2014 (40.6); pdf:st-marys-annual-leave-2014 (38.5); pdf:st-marys-annual-leave-2014 (28.0)
+
+## na-24 (no_answer, tune)
+
+**Q:** Does the University of Salford offer staff a cycle-to-work scheme?
+
+**Expected:** I couldn't find this in the documents.
+
+- /cycle to work|cycle-to-work|bicycle|bike/ in pdf:salford: 0 matches
+- closest BM25 hits (not answers): pdf:salford-whistleblowing (33.7); pdf:salford-whistleblowing (32.3); pdf:salford-whistleblowing (28.9)
+
+## na-25 (no_answer, tune)
+
+**Q:** Does Luton Borough Council pay for eye tests for staff who use computer screens?
+
+**Expected:** I couldn't find this in the documents.
+
+- /eye test|eyesight|glasses|spectacles|optician/ in pdf:luton: 0 matches
+- closest BM25 hits (not answers): pdf:malvern-data-protection-staff (27.9); pdf:luton-it-acceptable-use (25.7); pdf:luton-it-acceptable-use (24.8)
