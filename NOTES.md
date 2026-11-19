@@ -787,3 +787,91 @@ Additions to **Limitations**:
   (0.14). History questions are unaffected (n = 2: too small to read).
 - **Nothing was tuned on these numbers.** The test split is now spent, and Phase 8 tunes on tune only.
 - Report: eval/results/report_phase7_final_test.md.
+
+## Phase 8: generation, pre-registration (2026-11-18, written BEFORE any generation run)
+
+**Test set addition (done before this pre-registration, and before any generation run):**
+- 15 new **tune** no_answer questions (na-11 to na-25). They are near-misses: the document or topic area exists
+  in the corpus, but the asked detail doesn't. Each topic's absence is checked by regex against the corpus.
+- No_answer: 22 tune / 3 test. The test split is unchanged at 39. **Approved and frozen (2026-11-18).**
+- Cluster labels were renumbered (they follow id order), but the grouping of the existing questions is
+  identical. Each run uses its own labels consistently, so paired comparisons are unaffected.
+
+**System under test:**
+- **Retrieval:** the final Phase 7 configuration (hybrid RRF k=60 + date-aware w=0.1). Its top **5** chunks go to
+  the LLM, each with its title, date and version status, so that a history question can be answered
+  ("the previous policy said ...").
+- **LLM:** `llama3.1:8b` through the local Ollama server, temperature 0, behind one function
+  (`generate()`). It's called over Ollama's HTTP API with the Python standard library, so no new package.
+- **Fallback, decided now:** if citation-following is poor, we try **at most one** alternative free model,
+  `qwen2.5:7b`, with the same prompt and config. "Poor" means either of these on answered tune answerable questions:
+  - **format** below 0.90: an answer is well formed only if it has at least one citation and every citation
+    is a valid `[1]`-`[5]`;
+  - **support** below 0.70, where support = a cited chunk contains a gold quote. It's measured only on
+    questions where a gold chunk was in the top 5.
+
+  If the fallback runs, the model with the higher main generation metric is kept (paired test; if it's
+  not significant, llama3.1:8b stays).
+- **Prompt:** at most **2 versions**, both on tune. The second may only fix a failure category documented in the
+  first run's failure report.
+
+**Decline rule (run 10), decided now:**
+- **Score:** the cross-encoder `cross-encoder/ms-marco-MiniLM-L-6-v2` scores the question with the **top-1
+  retrieved chunk**. RRF scores are ranks, not confidence, so they aren't used.
+- **Decline:** if that score is below the threshold t, the system declines without calling the LLM. It also
+  declines if the LLM answers with exactly "I couldn't find this in the documents."
+- **Candidate thresholds (3, chosen in a scale-free way):** the **2.5th, 5th and 10th percentiles** of the top-1
+  scores of the answerable tune questions. That caps the wrong declines the threshold alone can cause at about
+  2.5 / 5 / 10%. "No threshold" (the LLM decides alone) is the reference.
+- **Selection:** the highest decline balanced accuracy, i.e. the mean of (no_answer correctly declined) and
+  (answerable not declined).
+  - **Guardrail:** total wrong declines on answerable questions ≤ 10%.
+  - **Ties** (overlapping intervals) go to the lower threshold, which declines less.
+
+**Metrics (tune; `overall` = answerable except history/real_pair, as in Phase 7):**
+- **Main: answer accuracy on `overall`.** A declined answerable question counts as wrong.
+  - **Numeric answers** (92 of 137 tune answerable): correct if the answer contains every number in the
+    expected answer (normalised: $, %, commas, units), checked by code.
+  - **Non-numeric answers** (45): an LLM judge compares the answer with the expected answer and returns
+    correct or incorrect. **The judge is `qwen2.5:7b`** (judge only, temperature 0, separate prompt), so the
+    generator never grades itself.
+  - **If qwen2.5:7b is also used as the generation fallback**, it judges its own answers in that run. That
+    run's judge results are then reported separately and marked as self-graded.
+  - **Judge validity:** the judge also grades the numeric answers, and its agreement with the code check is
+    reported. In addition, 30 judge decisions are audited by hand: listed for you with my reading, and the
+    disagreements reported.
+- **Versions: stale_answer** on outdated_version questions, i.e. the answer states the OLD value (the changed
+  number from outdated_evidence) and not the current one. Lower is better. Reported with answer accuracy.
+- **History:** answer accuracy on history questions (should state the previous value), reported separately.
+- **Citations:** format rate and support rate (defined above). A citation to a chunk without a gold quote is
+  not automatically wrong; support counts at least one supporting citation.
+- **Decline:** the no_answer decline rate, the answerable wrong-decline rate and balanced accuracy.
+- Improvement rule: the paired cluster bootstrap, verdicts on the cluster interval, as in Phase 7.
+
+**Failure report:** every wrong answer on tune gets one label, assigned by code where possible:
+- retrieval miss: no gold chunk in the top 5
+- wrong decline
+- stale fact: states the old value
+- ignored context: gold chunk in the top 5, wrong answer
+- hallucination: cites nothing, or cites a chunk without the stated number
+
+It also checks Limitation 9: are wrong answers more common when the gold chunk sits at rank 3-5 than at rank 1?
+
+**Test split:** **one** final generation run of the chosen system, after everything above is fixed on tune.
+Nothing is tuned on it, and it's reported descriptively with intervals.
+
+**Implementation notes (before any generation run):**
+- `src/generate.py` (prompt v1, the one `call_llm`, decline detection, cross-encoder decline score),
+  `src/grade.py` (code checks, judge, failure labels, `apply_threshold`) and `run_generation.py`. Tests use a
+  fake LLM (`tests/test_generate.py`).
+- **One generation pass serves all of run 10:** the LLM answers every question, then each candidate threshold is
+  applied to the same answers (`apply_threshold`). A threshold only replaces an answer with a decline, so this is
+  identical to running each threshold separately, at a quarter of the cost.
+- **Decline detection is exact,** as pre-registered. "Partial declines" (the sentence inside a longer answer) are
+  counted as a diagnostic, not as declines.
+- **Memory:** this machine has 8 GB shared by CPU and GPU, and llama3.1:8b uses ~6 GB of it. Generation runs
+  therefore put the bge embedder and the cross-encoder on the CPU (`device: cpu`; Phase 7 runs still use
+  `auto`). Check: the final retrieval configuration on CPU matches the Phase 7 GPU run, with chunk R@5 0.6905 =
+  0.6905; 4 of 144 questions differ only in order within the top 5.
+- **Order of the models:** the judge (qwen2.5:7b) runs after all answers are generated, so Ollama swaps models
+  once instead of per question.
