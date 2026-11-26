@@ -448,7 +448,7 @@ removes truncation (measurement validity), not because of a recall gain - which 
 - [x] Comparison table and charts across all Phase 7 runs (eval/results/charts/, reports phase7c_*).
 - [x] Choose the single best tune configuration (primary metrics + guardrail; ties -> simpler). -> hybrid_v9w10.
 - [x] Run the baseline and the chosen configuration once each on test with `--final` (2026-11-18).
-- [ ] Tag "retrieval done" (after merge).
+- [x] Tag "retrieval done" (after merge). -> Tag `retrieval-done` exists.
 
 ## Phase 7b step 1: retests on the small2big base (2026-11-18; tune; cluster intervals, 75 clusters)
 
