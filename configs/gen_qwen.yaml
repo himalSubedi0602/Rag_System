@@ -1,0 +1,15 @@
+# Phase 8 pre-registered fallback (used at most once): same retrieval, prompt and settings as gen_llama, generator
+# qwen2.5:7b. Runs ONLY if gen_llama's citation-following is poor (format < 0.90 or support < 0.70 on overall).
+# The judge is also qwen2.5:7b here, so its judge results are self-graded and reported as such.
+run_name: gen_qwen
+device: cpu
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  mode: hybrid
+  rrf_k: 60
+  date_aware_rerank: true
+  date_weight: 0.1
+generation:
+  model: qwen2.5:7b
+  judge_model: qwen2.5:7b

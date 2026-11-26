@@ -1337,3 +1337,95 @@ questions:
   evidence:
     - {doc: "pdf:lancaster-sickness-absence", quote: "the last 12- month period from the start date of the most recent absence"}
     - {doc: "pdf:st-marys-annual-leave-2014", quote: "staff members may carry forward up to 10 days leave with the approval of their line manager"}
+# --- Phase 8: 15 more tune no_answer questions for the decline threshold (drafted 2026-11-18, before any
+# --- generation run). Near-misses: the document or topic area exists in the corpus, the asked detail doesn't.
+- id: na-11
+  type: no_answer
+  split: tune
+  question: "Which mobile phone models does Luton Borough Council issue to its staff?"
+  absent:
+    - {pattern: "iphone|samsung|handset|phone model", scope: "pdf:luton"}
+- id: na-12
+  type: no_answer
+  split: tune
+  question: "How many days of bereavement leave does the University of Waikato give for the death of a grandparent?"
+  absent:
+    - {pattern: "bereave|grandparent|tangihanga|funeral", scope: "pdf:waikato"}
+- id: na-13
+  type: no_answer
+  split: tune
+  question: "What mileage rate does Heriot-Watt University pay hybrid workers who drive to campus?"
+  absent:
+    - {pattern: "mileage|per mile|pence", scope: "pdf:heriot"}
+- id: na-14
+  type: no_answer
+  split: tune
+  question: "What is the maximum fine a Havant Borough Council employee can personally receive for a data breach?"
+  absent:
+    - {pattern: "\\bfines?\\b|penalt", scope: "pdf:havant"}
+- id: na-15
+  type: no_answer
+  split: tune
+  question: "How much paternity leave does Queen Mary University of London give under its hybrid working policy?"
+  absent:
+    - {pattern: "paternity|parental|maternity", scope: "pdf:qmul"}
+- id: na-16
+  type: no_answer
+  split: tune
+  question: "What is the University of St Andrews policy on staff working from abroad?"
+  absent:
+    - {pattern: "abroad|overseas|another country|outside the uk", scope: "pdf:st-andrews"}
+- id: na-17
+  type: no_answer
+  split: tune
+  question: "Which tuition costs does Brunel University cover for staff taking a part-time degree?"
+  absent:
+    - {pattern: "tuition|degree|course fee", scope: "pdf:brunel"}
+- id: na-18
+  type: no_answer
+  split: tune
+  question: "Does Malvern Hills District Council allow staff to use personal email for council business?"
+  absent:
+    - {pattern: "personal e-?mail|private e-?mail|home e-?mail", scope: "pdf:malvern"}
+- id: na-19
+  type: no_answer
+  split: tune
+  question: "How many days of paid jury service leave does the University of Waikato provide?"
+  absent:
+    - {pattern: "jury", scope: "pdf:waikato"}
+- id: na-20
+  type: no_answer
+  split: tune
+  question: "Which language-learning apps does GitLab reimburse for team members?"
+  absent:
+    - {pattern: "duolingo|language[- ]learning|language course|language lesson", scope: "hb:"}
+- id: na-21
+  type: no_answer
+  split: tune
+  question: "What is the dress code for staff at the University of Roehampton?"
+  absent:
+    - {pattern: "dress code|attire|uniform|clothing", scope: "pdf:roehampton"}
+- id: na-22
+  type: no_answer
+  split: tune
+  question: "What time does the GitLab Support team's weekly all-hands meeting start?"
+  absent:
+    - {pattern: "all-hands|all hands", scope: "hb:support"}
+- id: na-23
+  type: no_answer
+  split: tune
+  question: "How many paid days off does St Mary's University give staff for moving house?"
+  absent:
+    - {pattern: "moving house|house move|removal|relocat", scope: "pdf:st-marys"}
+- id: na-24
+  type: no_answer
+  split: tune
+  question: "Does the University of Salford offer staff a cycle-to-work scheme?"
+  absent:
+    - {pattern: "cycle to work|cycle-to-work|bicycle|bike", scope: "pdf:salford"}
+- id: na-25
+  type: no_answer
+  split: tune
+  question: "Does Luton Borough Council pay for eye tests for staff who use computer screens?"
+  absent:
+    - {pattern: "eye test|eyesight|glasses|spectacles|optician", scope: "pdf:luton"}

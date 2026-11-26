@@ -44,6 +44,8 @@ models/
 # ---------------------------------------------------------------
 # Per-question logs with full chunk text can be several MB per run
 eval/results/**/*.jsonl
+# Phase 9 app query log (questions people asked)
+logs/
 
 # ---------------------------------------------------------------
 # OS / editor clutter

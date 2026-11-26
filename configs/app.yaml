@@ -1,0 +1,14 @@
+# Phase 9 app: the final Phase 7 retrieval (hybrid RRF k=60 + date-aware w=0.1) and the Phase 8 generator.
+# decline_threshold stays null (the LLM decides alone) until Phase 8 selects one on tune; then set it here.
+run_name: app
+device: cpu              # 8 GB Mac: Ollama holds the shared GPU memory
+embedding:
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  mode: hybrid
+  rrf_k: 60
+  date_aware_rerank: true
+  date_weight: 0.1
+generation:
+  model: llama3.1:8b
+  decline_threshold: null

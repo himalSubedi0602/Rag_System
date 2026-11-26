@@ -2,8 +2,8 @@
 
 > **Synthetic versions:** the "old" values in outdated_version and history questions (and in `data/synthetic/`) are **invented for this evaluation**. They are deliberately changed copies of current GitLab handbook pages, **not real GitLab history**. Only the two real_pair questions use real old versions (GitLab Testing Agreement v1-v4, University of Cambridge 2022 draft policy).
 
-183 questions: lookup 50, paraphrase 35, exact_term 10, multi_doc 18, outdated_version 39, real_pair 2, history 12, no_answer 10, compound 7
-Split: tune 144, test 39
+198 questions: lookup 50, paraphrase 35, exact_term 10, multi_doc 18, outdated_version 39, real_pair 2, history 12, no_answer 25, compound 7
+Split: tune 159, test 39
 
 | ID | Type | Split | Style | Word overlap | Question | Expected answer | Gold document(s) |
 |---|---|---|---|---|---|---|---|
@@ -190,3 +190,18 @@ Split: tune 144, test 39
 | md-23 | compound | tune | direct | 9% | What automatic wage adjustment applies to GitLab team members in Belgium, and what KiwiSaver contribution does GitLab make in New Zealand? | Belgium: wages rise by 2% when the smoothed health index reaches pivot numbers; New Zealand: 3% of base salary, on top of salary. | hb:total-rewards/benefits/general-and-entity-benefits/bv-benefits-belgium<br>hb:total-rewards/benefits/general-and-entity-benefits/pty-benefits-new-zealand |
 | md-24 | multi_doc | tune | direct | 23% | Up to what age are children covered on GitLab Ireland's private medical plan, and what share of dependants' premiums does GitLab pay in France? | Ireland: children up to age 21 if enrolled in school; France: GitLab pays 66% of dependent premiums. | hb:total-rewards/benefits/general-and-entity-benefits/gitlab-ireland-ltd<br>hb:total-rewards/benefits/general-and-entity-benefits/france-sas |
 | md-25 | compound | tune | direct | 23% | Over what period is sick-pay entitlement assessed at Lancaster City Council, and how much leave can St Mary's staff carry forward in exceptional circumstances? | Lancaster: a rolling 12 months from the start of the most recent absence; St Mary's: up to 10 days, agreed in advance with the line manager and a Vice-Principal. | pdf:lancaster-sickness-absence<br>pdf:st-marys-annual-leave-2014 |
+| na-11 | no_answer | tune | direct |  | Which mobile phone models does Luton Borough Council issue to its staff? | I couldn't find this in the documents. | (none: should decline) |
+| na-12 | no_answer | tune | direct |  | How many days of bereavement leave does the University of Waikato give for the death of a grandparent? | I couldn't find this in the documents. | (none: should decline) |
+| na-13 | no_answer | tune | direct |  | What mileage rate does Heriot-Watt University pay hybrid workers who drive to campus? | I couldn't find this in the documents. | (none: should decline) |
+| na-14 | no_answer | tune | direct |  | What is the maximum fine a Havant Borough Council employee can personally receive for a data breach? | I couldn't find this in the documents. | (none: should decline) |
+| na-15 | no_answer | tune | direct |  | How much paternity leave does Queen Mary University of London give under its hybrid working policy? | I couldn't find this in the documents. | (none: should decline) |
+| na-16 | no_answer | tune | direct |  | What is the University of St Andrews policy on staff working from abroad? | I couldn't find this in the documents. | (none: should decline) |
+| na-17 | no_answer | tune | direct |  | Which tuition costs does Brunel University cover for staff taking a part-time degree? | I couldn't find this in the documents. | (none: should decline) |
+| na-18 | no_answer | tune | direct |  | Does Malvern Hills District Council allow staff to use personal email for council business? | I couldn't find this in the documents. | (none: should decline) |
+| na-19 | no_answer | tune | direct |  | How many days of paid jury service leave does the University of Waikato provide? | I couldn't find this in the documents. | (none: should decline) |
+| na-20 | no_answer | tune | direct |  | Which language-learning apps does GitLab reimburse for team members? | I couldn't find this in the documents. | (none: should decline) |
+| na-21 | no_answer | tune | direct |  | What is the dress code for staff at the University of Roehampton? | I couldn't find this in the documents. | (none: should decline) |
+| na-22 | no_answer | tune | direct |  | What time does the GitLab Support team's weekly all-hands meeting start? | I couldn't find this in the documents. | (none: should decline) |
+| na-23 | no_answer | tune | direct |  | How many paid days off does St Mary's University give staff for moving house? | I couldn't find this in the documents. | (none: should decline) |
+| na-24 | no_answer | tune | direct |  | Does the University of Salford offer staff a cycle-to-work scheme? | I couldn't find this in the documents. | (none: should decline) |
+| na-25 | no_answer | tune | direct |  | Does Luton Borough Council pay for eye tests for staff who use computer screens? | I couldn't find this in the documents. | (none: should decline) |

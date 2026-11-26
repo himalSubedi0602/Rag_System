@@ -79,12 +79,36 @@ def allowed_chunk_ids(bundle: IndexBundle, excluded_status: str) -> set[str]:
     return cache[excluded_status]
 
 
-def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: int) -> list[tuple[str, float]]:
+EVERYONE = "all_employees"   # access role every user has (data/sources.yaml)
+
+
+def role_where(role: str) -> dict[str, Any]:
+    """Chroma filter: chunks the role may see (its own role, or open to all employees)."""
+    if role == EVERYONE:
+        return {"access_roles": {"$contains": EVERYONE}}
+    return {"$or": [{"access_roles": {"$contains": role}}, {"access_roles": {"$contains": EVERYONE}}]}
+
+
+def role_allowed_ids(bundle: IndexBundle, role: str) -> set[str]:
+    """Chunk ids the role may see, computed once per bundle and role."""
+    cache = getattr(bundle, "_role_allowed", None)
+    if cache is None:
+        cache = bundle._role_allowed = {}
+    if role not in cache:
+        cache[role] = {cid for cid, c in bundle.chunks_by_id.items()
+                       if role in c["access_roles"] or EVERYONE in c["access_roles"]}
+    return cache[role]
+
+
+def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: int,
+                role: str | None = None) -> list[tuple[str, float]]:
     """Top `depth` candidates from vector search (or small-to-big), optionally fused with BM25.
-    With a version filter, excluded chunks are never searched (run 8 / 8b)."""
+    With a version filter, excluded chunks are never searched (run 8 / 8b). With a role (the Phase 9 app;
+    evaluation passes none), chunks that role may not see are never searched either."""
     r = cfg["retrieval"]
     excluded = VERSION_FILTERS[r["version_filter"]]
-    where = {"version_status": {"$ne": excluded}} if excluded else None
+    filters = ([{"version_status": {"$ne": excluded}}] if excluded else []) + ([role_where(role)] if role else [])
+    where = filters[0] if len(filters) == 1 else ({"$and": filters} if filters else None)
     if r["small_to_big"]:
         dense = small_to_big_search(bundle.piece_collection, bundle.embed_fn, question, depth, where=where)
     else:
@@ -92,6 +116,9 @@ def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: 
     if r["mode"] != "hybrid":
         return dense
     allowed = allowed_chunk_ids(bundle, excluded) if excluded else None
+    if role:
+        visible = role_allowed_ids(bundle, role)
+        allowed = visible if allowed is None else allowed & visible
     keyword = bundle.bm25.search(question, depth, allowed_ids=allowed)
     return reciprocal_rank_fusion([dense, keyword], r["rrf_k"])[:depth]
 
@@ -101,11 +128,11 @@ def first_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], depth: 
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=2)
-def load_reranker(model_name: str, max_length: int):
+def load_reranker(model_name: str, max_length: int, device: str = "auto"):
     """Load the cross-encoder once. It reads (question, chunk) together and outputs a relevance score."""
     from sentence_transformers import CrossEncoder  # slow import; only when really needed
 
-    return CrossEncoder(model_name, max_length=max_length)
+    return CrossEncoder(model_name, max_length=max_length, device=None if device == "auto" else device)
 
 
 def rerank(question: str, candidates: list[tuple[str, float]], bundle: IndexBundle,
@@ -118,7 +145,7 @@ def rerank(question: str, candidates: list[tuple[str, float]], bundle: IndexBund
     head, tail = candidates[:n], candidates[n:]
     if not head:
         return []
-    model = load_reranker(cfg["reranker"]["model"], cfg["reranker"]["max_length"])
+    model = load_reranker(cfg["reranker"]["model"], cfg["reranker"]["max_length"], cfg.get("device", "auto"))
     scores = model.predict([(question, bundle.chunks_by_id[cid]["text"]) for cid, _ in head],
                            batch_size=32, show_progress_bar=False)
     reranked = rank_results([(cid, float(s)) for (cid, _), s in zip(head, scores)])
@@ -239,14 +266,18 @@ def two_stage(question: str, bundle: IndexBundle, cfg: dict[str, Any], k: int) -
 # Entry point
 # ---------------------------------------------------------------------------
 
-def retrieve(question: str, bundle: IndexBundle, cfg: dict[str, Any]) -> list[tuple[str, float]]:
-    """Return the top `retrieval.top_k_each` chunks for a question: [(chunk_id, score), ...], best first."""
+def retrieve(question: str, bundle: IndexBundle, cfg: dict[str, Any],
+             role: str | None = None) -> list[tuple[str, float]]:
+    """Return the top `retrieval.top_k_each` chunks for a question: [(chunk_id, score), ...], best first.
+    `role` (Phase 9 app only) restricts the search to documents that access role may see."""
     problems = unsupported_settings(cfg)
     if problems:
         raise NotImplementedError(f"Not implemented yet: {', '.join(problems)}")
     r, rr = cfg["retrieval"], cfg["reranker"]
     k = r["top_k_each"]
     if r["two_stage"]:
+        if role:
+            raise NotImplementedError("Not implemented yet: role filter with two_stage")
         return two_stage(question, bundle, cfg, k)
 
     depth = k
@@ -254,7 +285,7 @@ def retrieve(question: str, bundle: IndexBundle, cfg: dict[str, Any]) -> list[tu
         depth = max(depth, rr["candidates"])
     if r["max_per_version_group"] > 0:
         depth = max(depth, 4 * k)            # extra candidates so the cap can still fill k slots
-    ranked = first_stage(question, bundle, cfg, depth)
+    ranked = first_stage(question, bundle, cfg, depth, role=role)
     if rr["enabled"]:
         ranked = rerank(question, ranked, bundle, cfg, rr["candidates"])
     if r["max_per_version_group"] > 0:

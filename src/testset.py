@@ -37,7 +37,7 @@ from src.ingest import load_documents
 SOURCE_PATH = "eval/questions_source.yaml"
 CHANGES_PATH = "data/synthetic/changes.yaml"
 EXPECTED_COUNTS = {"lookup": 50, "paraphrase": 35, "exact_term": 10, "multi_doc": 18, "compound": 7,
-                   "outdated_version": 39, "real_pair": 2, "history": 12, "no_answer": 10}
+                   "outdated_version": 39, "real_pair": 2, "history": 12, "no_answer": 25}
 TEST_SHARE = 25 / 80          # share of NEW questions that go to test (same as the original split)
 MIN_OUTDATED_TUNE = 20        # enough outdated questions to measure stale rate while tuning
 MIN_OUTDATED_TEST = 12        # ... and for the one final test run
