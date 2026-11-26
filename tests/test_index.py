@@ -200,3 +200,28 @@ def test_small_to_big_returns_each_parent_once_by_best_piece(client):
     assert [cid for cid, _ in results] == [chunks[0]["chunk_id"], chunks[1]["chunk_id"]]  # parents, not pieces
     _, rebuilt = build_piece_index(chunks, S2B_CFG, client, fake_embed)
     assert not rebuilt                                                     # unchanged chunks -> reused
+
+
+# --- access roles (Phase 9 app) -------------------------------------------------
+
+def test_role_filter_in_hybrid_retrieval(client):
+    """A role sees its own documents plus all_employees ones, in vector search AND BM25; others never leak in."""
+    from src.index import IndexBundle
+    from src.retrieve import first_stage
+
+    chunks = CHUNKS + [make_chunk(3, "aaaa finance budget", roles=("finance",))]
+    collection, _ = build_vector_index(chunks, CFG, client, fake_embed)
+    bundle = IndexBundle(collection, BM25Index(chunks, False), {c["chunk_id"]: c for c in chunks}, fake_embed)
+    cfg = {"retrieval": {"version_filter": "none", "small_to_big": False, "mode": "hybrid", "rrf_k": 60}}
+
+    def ids(role, version_filter="none"):
+        cfg["retrieval"]["version_filter"] = version_filter
+        return {cid for cid, _ in first_stage("aaaa bbbb finance", bundle, cfg, depth=10, role=role)}
+
+    every, legal, finance = (chunks[i]["chunk_id"] for i in (2, 1, 3))
+    assert every in ids("all_employees")
+    assert legal not in ids("all_employees") and finance not in ids("all_employees")
+    assert legal in ids("legal") and finance not in ids("legal") and every in ids("legal")
+    assert finance in ids("finance") and legal not in ids("finance")
+    assert legal not in ids("legal", "exclude_superseded")      # role filter combines with the version filter
+    assert {legal, finance, every} <= ids(None)                 # no role (evaluation): everything searchable
