@@ -188,7 +188,11 @@ stopped (`--fresh` starts over). Results go to `eval/results/gen_llama/` (`summa
 ```bash
 python -m src.check_generation gen_llama           # completeness and config checks, no model loaded
 python -m src.compare_gen gen_llama gen_qwen       # paired comparison of two runs (fallback / prompt v2)
+python -m src.report_gen gen_llama                 # failure report with examples, Limitation 9, audit tally
+python -m src.final_config gen_llama --write       # chosen threshold -> configs/gen_final.yaml + configs/app.yaml
 ```
+
+The final test run (`configs/gen_final.yaml`, `--final`) runs once, from cell 8 of the Colab notebook.
 
 ### Ask questions in the app (Phase 9)
 
