@@ -13,4 +13,5 @@ matplotlib>=3.8
 PyYAML>=6.0
 # Tests
 pytest>=8.0
-# Streamlit is added in Phase 9.
+# Phase 9 app (app.py)
+streamlit>=1.40
