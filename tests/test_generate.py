@@ -175,3 +175,60 @@ def test_decline_table_and_metrics(tmp_path):
                                                                     "decline_percentiles": [2.5, 5, 10]}},
                   "tune", df, [{**question(), "id": r["id"]} for r in rows])
     assert (tmp_path / "summary.md").exists() and (tmp_path / "judge_audit.md").exists()
+
+
+def test_select_setting_rule():
+    """Guardrail first, then best balanced accuracy, then ties (overlapping intervals) -> lowest threshold."""
+    from run_generation import select_setting
+
+    def table(rows):
+        return pd.DataFrame(rows, columns=["setting", "threshold", "answerable_wrong_decline",
+                                           "balanced_accuracy", "ba_lo", "ba_hi"])
+    clear = table([["none", None, 0.02, 0.60, 0.55, 0.65], ["p2.5", 1.0, 0.03, 0.80, 0.75, 0.85],
+                   ["p5", 2.0, 0.05, 0.82, 0.77, 0.87], ["p10", 3.0, 0.12, 0.95, 0.90, 0.99]])
+    assert select_setting(clear) == 1          # p10 breaks the 10% guardrail; p5 best but ties p2.5 -> lower
+    separate = table([["none", None, 0.0, 0.50, 0.45, 0.55], ["p2.5", 1.0, 0.05, 0.90, 0.85, 0.95]])
+    assert select_setting(separate) == 1       # no overlap: the clearly better threshold wins
+    tied_with_none = table([["none", None, 0.0, 0.78, 0.70, 0.86], ["p2.5", 1.0, 0.02, 0.80, 0.72, 0.88]])
+    assert select_setting(tied_with_none) == 0  # overlaps 'no threshold', which declines least
+    assert select_setting(table([["p10", 3.0, 0.2, 0.9, 0.8, 1.0]])) is None
+
+
+def test_balanced_accuracy_ci_brackets_the_estimate():
+    from run_generation import balanced_accuracy_ci
+    df = pd.DataFrame({"question_type": ["no_answer"] * 10 + ["lookup"] * 30,
+                       "declined": [True] * 7 + [False] * 3 + [False] * 27 + [True] * 3,
+                       "cluster": [f"c{i}" for i in range(40)]})
+    lo, hi = balanced_accuracy_ci(df)
+    assert lo < (0.7 + 0.9) / 2 < hi and 0 <= lo and hi <= 1
+
+
+def test_generate_all_resumes_and_drops_a_cut_line(tmp_path, monkeypatch):
+    """Saved answers are reused (no new LLM call), a line cut by a disconnect is dropped and regenerated,
+    and every new answer is appended as soon as it is made."""
+    import json
+    from types import SimpleNamespace
+
+    import run_generation as rg
+
+    bundle = SimpleNamespace(chunks_by_id={"c1": CHUNKS[0]})
+    monkeypatch.setattr(rg, "build_indexes", lambda cfg: bundle)
+    monkeypatch.setattr(rg, "retrieve", lambda q, b, cfg: [("c1", 1.0)])
+    monkeypatch.setattr(rg, "decline_score", lambda q, c, cfg: 5.0)
+    cfg = {**CFG, "generation": {**CFG["generation"], "context_chunks": 5}}
+    qs = [question(id=f"q{i}") for i in (1, 2, 3)]
+
+    log_path = tmp_path / "generations.jsonl"
+    saved = {"id": "q1", "chunk_ids": ["c1"], "decline_score": 5.0, "answer": "saved", "declined": False}
+    log_path.write_text(json.dumps(saved) + "\n" + '{"id": "q2", "ans', encoding="utf-8")   # q2 cut short
+
+    llm = FakeLLM()
+    log = rg.generate_all(cfg, qs, llm=llm, log_path=log_path)
+    assert [e["id"] for e in log] == ["q1", "q2", "q3"]
+    assert log[0]["answer"] == "saved" and llm.calls == ["gen-model", "gen-model"]   # only q2 and q3 generated
+    lines = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+    assert sorted(e["id"] for e in lines) == ["q1", "q2", "q3"]
+
+    llm2 = FakeLLM()
+    assert [e["id"] for e in rg.generate_all(cfg, qs, llm=llm2, log_path=log_path)] == ["q1", "q2", "q3"]
+    assert llm2.calls == []                                                           # all resumed

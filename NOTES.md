@@ -875,3 +875,15 @@ Nothing is tuned on it, and it's reported descriptively with intervals.
   0.6905; 4 of 144 questions differ only in order within the top 5.
 - **Order of the models:** the judge (qwen2.5:7b) runs after all answers are generated, so Ollama swaps models
   once instead of per question.
+- **Deviation on Colab (2026-11-25):** generation runs on a Colab T4 with `device: auto` (CUDA) instead of
+  `device: cpu`. The CPU setting was only for the 8 GB Mac, and a CPU index rebuild on Colab stalled and the
+  session crashed. The stored Chroma collection was reused unchanged (`fixed-500-50__bge-small__noprefix`,
+  2,468 chunks), so only query embeddings and the cross-encoder run on the GPU. Check: in the 5-question smoke
+  run, every gold-chunk hit or miss matches the Phase 7 run `hybrid_v9w10` (lk-01/lk-07 hit; lk-02/lk-09 at
+  rank 6; lk-06 not found).
+- **Reply-length cap and resume (2026-11-25, before any completed tune run):** the first full tune run hung on
+  pp-33 (question 127): the Ollama call never returned and hit the 600 s timeout, and all 126 answers were lost
+  because `generations.jsonl` was only written at the end. Fixes: `generation.max_tokens: 512` (Ollama
+  `num_predict`), far above the 1-3 sentence answers the prompt asks for (answers so far took 3-7 s); and each
+  answer is appended to `generations.jsonl` as it is made, so a rerun resumes (`--fresh` starts over). No
+  result had been computed, so nothing was tuned on these answers.

@@ -60,6 +60,7 @@ generation:
   temperature: 0.0
   seed: 42
   num_ctx: 8192            # Ollama's default context is too small for 5 x 500-token chunks + prompt
+  max_tokens: 512          # cap on reply length (Ollama num_predict); stops a looping reply from hanging the run
   context_chunks: 5        # top retrieved chunks passed to the LLM
   prompt_version: 1        # at most 2 versions (pre-registered)
   decline_threshold: null  # cross-encoder score on (question, top-1 chunk); null = the LLM decides alone

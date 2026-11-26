@@ -68,7 +68,8 @@ def call_llm(messages: list[dict[str, str]], cfg: dict[str, Any], model: str) ->
     if g["backend"] != "ollama":
         raise ValueError(f"unsupported generation.backend: {g['backend']}")
     body = {"model": model, "messages": messages, "stream": False,
-            "options": {"temperature": g["temperature"], "seed": g["seed"], "num_ctx": g["num_ctx"]}}
+            "options": {"temperature": g["temperature"], "seed": g["seed"], "num_ctx": g["num_ctx"],
+                        "num_predict": g["max_tokens"]}}
     request = urllib.request.Request(f"{g['ollama_url']}/api/chat", data=json.dumps(body).encode("utf-8"),
                                      headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=600) as response:
